@@ -1,7 +1,6 @@
 import {
   AirVent,
   Bell,
-  Calendar,
   Camera,
   Check,
   Clock,
@@ -59,11 +58,15 @@ const EQUIPMENT_ICON: Record<
   none: Utensils,
 };
 
+/**
+ * Two, not four. "Tenho 15 minutos" and "Preparar para depois" were removed on
+ * use: both are reachable from the tab bar and from the chat bar, and four
+ * tiles under a "Atalhos" label read as a menu rather than as a shortcut.
+ * `?max=` still works on the search screen — nothing was deleted behind them.
+ */
 const ATALHOS = [
   { label: 'Com o que tenho', icon: Refrigerator, to: routes.pantry },
-  { label: 'Tenho 15 minutos', icon: Clock, to: `${routes.search}?max=30` },
   { label: 'Importar receita', icon: Link2, to: routes.import },
-  { label: 'Preparar para depois', icon: Calendar, to: routes.plan },
 ] as const;
 
 /**
