@@ -83,6 +83,63 @@ export type Database = {
           },
         ];
       };
+      ai_usage_events: {
+        Row: {
+          id: string;
+          created_by: string | null;
+          provider: string;
+          model: string;
+          operation: string;
+          input_tokens: number;
+          output_tokens: number;
+          estimated_cost_usd: number;
+          magazine_import_id: string | null;
+          context: Json;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          created_by?: string | null;
+          provider: string;
+          model: string;
+          operation: string;
+          input_tokens?: number;
+          output_tokens?: number;
+          estimated_cost_usd?: number;
+          magazine_import_id?: string | null;
+          context?: Json;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          created_by?: string | null;
+          provider?: string;
+          model?: string;
+          operation?: string;
+          input_tokens?: number;
+          output_tokens?: number;
+          estimated_cost_usd?: number;
+          magazine_import_id?: string | null;
+          context?: Json;
+          created_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "ai_usage_events_created_by_fkey";
+            columns: ["created_by"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "ai_usage_events_magazine_import_id_fkey";
+            columns: ["magazine_import_id"];
+            isOneToOne: false;
+            referencedRelation: "magazine_imports";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       collection_recipes: {
         Row: {
           collection_id: string;
@@ -695,6 +752,274 @@ export type Database = {
           updated_at?: string;
         };
         Relationships: [];
+      };
+      magazine_import_items: {
+        Row: {
+          id: string;
+          import_id: string;
+          title: string | null;
+          source_pages: number[];
+          block_index: number;
+          source_data: Json | null;
+          transformed_data: Json | null;
+          confidence: Json;
+          status: Database["public"]["Enums"]["magazine_item_status"];
+          needs_review: boolean;
+          error_message: string | null;
+          source_image_path: string | null;
+          app_image_url: string | null;
+          fingerprint: string | null;
+          recipe_id: string | null;
+          reviewed_by: string | null;
+          reviewed_at: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          import_id: string;
+          title?: string | null;
+          source_pages?: number[];
+          block_index?: number;
+          source_data?: Json | null;
+          transformed_data?: Json | null;
+          confidence?: Json;
+          status?: Database["public"]["Enums"]["magazine_item_status"];
+          needs_review?: boolean;
+          error_message?: string | null;
+          source_image_path?: string | null;
+          app_image_url?: string | null;
+          fingerprint?: string | null;
+          recipe_id?: string | null;
+          reviewed_by?: string | null;
+          reviewed_at?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          import_id?: string;
+          title?: string | null;
+          source_pages?: number[];
+          block_index?: number;
+          source_data?: Json | null;
+          transformed_data?: Json | null;
+          confidence?: Json;
+          status?: Database["public"]["Enums"]["magazine_item_status"];
+          needs_review?: boolean;
+          error_message?: string | null;
+          source_image_path?: string | null;
+          app_image_url?: string | null;
+          fingerprint?: string | null;
+          recipe_id?: string | null;
+          reviewed_by?: string | null;
+          reviewed_at?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "magazine_import_items_import_id_fkey";
+            columns: ["import_id"];
+            isOneToOne: false;
+            referencedRelation: "magazine_imports";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "magazine_import_items_recipe_id_fkey";
+            columns: ["recipe_id"];
+            isOneToOne: false;
+            referencedRelation: "recipes";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "magazine_import_items_reviewed_by_fkey";
+            columns: ["reviewed_by"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      magazine_import_logs: {
+        Row: {
+          id: string;
+          import_id: string;
+          level: string;
+          message: string;
+          context: Json;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          import_id: string;
+          level?: string;
+          message: string;
+          context?: Json;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          import_id?: string;
+          level?: string;
+          message?: string;
+          context?: Json;
+          created_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "magazine_import_logs_import_id_fkey";
+            columns: ["import_id"];
+            isOneToOne: false;
+            referencedRelation: "magazine_imports";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      magazine_import_pages: {
+        Row: {
+          id: string;
+          import_id: string;
+          page_number: number;
+          kind: Database["public"]["Enums"]["magazine_page_kind"];
+          confidence: number | null;
+          classified_by: string | null;
+          text_excerpt: string | null;
+          image_path: string | null;
+          status: string;
+          error_message: string | null;
+          attempts: number;
+          analyzed_at: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          import_id: string;
+          page_number: number;
+          kind?: Database["public"]["Enums"]["magazine_page_kind"];
+          confidence?: number | null;
+          classified_by?: string | null;
+          text_excerpt?: string | null;
+          image_path?: string | null;
+          status?: string;
+          error_message?: string | null;
+          attempts?: number;
+          analyzed_at?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          import_id?: string;
+          page_number?: number;
+          kind?: Database["public"]["Enums"]["magazine_page_kind"];
+          confidence?: number | null;
+          classified_by?: string | null;
+          text_excerpt?: string | null;
+          image_path?: string | null;
+          status?: string;
+          error_message?: string | null;
+          attempts?: number;
+          analyzed_at?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "magazine_import_pages_import_id_fkey";
+            columns: ["import_id"];
+            isOneToOne: false;
+            referencedRelation: "magazine_imports";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      magazine_imports: {
+        Row: {
+          id: string;
+          created_by: string;
+          source_type: string;
+          publication: string | null;
+          issue: string | null;
+          publication_date: string | null;
+          language: string;
+          country: string | null;
+          file_path: string;
+          file_name: string | null;
+          file_size_bytes: number | null;
+          cover_image_path: string | null;
+          page_count: number | null;
+          status: Database["public"]["Enums"]["magazine_import_status"];
+          stage: string | null;
+          pages_analyzed: number;
+          recipe_count: number;
+          metadata: Json;
+          error_message: string | null;
+          started_at: string | null;
+          completed_at: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          created_by: string;
+          source_type?: string;
+          publication?: string | null;
+          issue?: string | null;
+          publication_date?: string | null;
+          language?: string;
+          country?: string | null;
+          file_path: string;
+          file_name?: string | null;
+          file_size_bytes?: number | null;
+          cover_image_path?: string | null;
+          page_count?: number | null;
+          status?: Database["public"]["Enums"]["magazine_import_status"];
+          stage?: string | null;
+          pages_analyzed?: number;
+          recipe_count?: number;
+          metadata?: Json;
+          error_message?: string | null;
+          started_at?: string | null;
+          completed_at?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          created_by?: string;
+          source_type?: string;
+          publication?: string | null;
+          issue?: string | null;
+          publication_date?: string | null;
+          language?: string;
+          country?: string | null;
+          file_path?: string;
+          file_name?: string | null;
+          file_size_bytes?: number | null;
+          cover_image_path?: string | null;
+          page_count?: number | null;
+          status?: Database["public"]["Enums"]["magazine_import_status"];
+          stage?: string | null;
+          pages_analyzed?: number;
+          recipe_count?: number;
+          metadata?: Json;
+          error_message?: string | null;
+          started_at?: string | null;
+          completed_at?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "magazine_imports_created_by_fkey";
+            columns: ["created_by"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+        ];
       };
       meal_plan_entries: {
         Row: {
@@ -1932,6 +2257,9 @@ export type Database = {
       equipment_type: "air_fryer" | "oven" | "stovetop" | "thermomix" | "microwave" | "blender" | "pressure_cooker" | "electric_cooker" | "barbecue" | "sous_vide" | "other" | "none";
       import_source: "url" | "text" | "image" | "pdf" | "manual";
       import_status: "pending" | "extracting" | "needs_review" | "accepted" | "failed";
+      magazine_import_status: "uploaded" | "processing" | "extracting" | "review_required" | "ready" | "completed" | "failed";
+      magazine_item_status: "detected" | "extracted" | "review" | "approved" | "imported" | "ignored" | "failed";
+      magazine_page_kind: "cover" | "advertisement" | "editorial" | "index" | "article" | "recipe" | "recipe_index" | "unknown";
       meal_slot: "cafe" | "almoco" | "lanche" | "jantar" | "ceia";
       preference_kind: "cuisine" | "style" | "time" | "restriction";
       recipe_status: "draft" | "review" | "published" | "archived";

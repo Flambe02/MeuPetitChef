@@ -13,6 +13,9 @@ export type RecipeStatus = Enums<'recipe_status'>;
 export type PreferenceKind = Enums<'preference_kind'>;
 export type ImportSource = Enums<'import_source'>;
 export type ImportStatus = Enums<'import_status'>;
+export type MagazineImportStatus = Enums<'magazine_import_status'>;
+export type MagazinePageKind = Enums<'magazine_page_kind'>;
+export type MagazineItemStatus = Enums<'magazine_item_status'>;
 
 /* ── Row aliases ──────────────────────────────────────────────────────────── */
 export type Profile = Tables<'profiles'>;
@@ -30,6 +33,10 @@ export type DiaryEntry = Tables<'diary_entries'>;
 export type CookSession = Tables<'cook_sessions'>;
 export type Collection = Tables<'collections'>;
 export type RecipeImport = Tables<'recipe_imports'>;
+export type MagazineImport = Tables<'magazine_imports'>;
+export type MagazineImportPage = Tables<'magazine_import_pages'>;
+export type MagazineImportItem = Tables<'magazine_import_items'>;
+export type MagazineImportLog = Tables<'magazine_import_logs'>;
 
 /**
  * The recipe_cards view is nullable on every column (Postgres cannot prove

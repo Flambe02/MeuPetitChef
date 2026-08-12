@@ -386,9 +386,16 @@ export default function RecipeScreen() {
                   >
                     −
                   </button>
-                  <span className="min-w-4 text-center font-mono text-heading text-ink">
+                  {/* `<output>` rather than a span: it is a live region by
+                      default, so the new count is announced instead of silently
+                      redrawn. Without it the only feedback for a screen reader
+                      was the ingredient amounts changing further down. */}
+                  <output
+                    aria-label={`${activeServings} ${activeServings === 1 ? 'porção' : 'porções'}`}
+                    className="min-w-4 text-center font-mono text-heading text-ink"
+                  >
                     {activeServings}
-                  </span>
+                  </output>
                   <button
                     type="button"
                     className="sn-iconbtn"
@@ -506,8 +513,13 @@ export default function RecipeScreen() {
                   </div>
                 ))}
               </div>
+              {/* Ces valeurs sont *par portion* : elles ne bougent pas quand on
+                  change le nombre de portions, et le texte disait le contraire.
+                  Une phrase qui promet une réaction qui n'aura pas lieu fait
+                  passer un comportement correct pour une panne. */}
               <p className="mt-4.5 text-small leading-[1.6] text-ink-muted">
-                Valores estimados para o chef selecionado e o número de porções escolhido.
+                Valores estimados por porção, para o chef selecionado. Mudar o número de porções
+                altera as quantidades dos ingredientes, não estes valores.
               </p>
 
               {data.notes.length > 0 ? (

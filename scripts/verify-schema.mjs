@@ -261,6 +261,82 @@ await assertThat(
 );
 await db.exec('reset role;');
 
+/* ---------------------------------------------------------------------------
+ * Le back-office magazine est réservé aux admins (migration 17).
+ *
+ * Masquer l'écran n'est pas un contrôle d'accès : PostgREST est un point
+ * d'entrée public. Ce qui suit vérifie la seule chose qui arrête vraiment un
+ * inconnu connecté — les policies. Écrit avec deux identités réelles plutôt
+ * qu'en lisant pg_policies : une policy qui existe mais ne filtre pas est
+ * précisément le scénario à attraper.
+ * ------------------------------------------------------------------------- */
+const ADMIN_USER = '22222222-2222-2222-2222-222222222222';
+await db.exec(`
+  insert into auth.users (id, email) values ('${ADMIN_USER}', 'admin@test.local');
+  insert into public.profiles (id, role) values ('${ADMIN_USER}', 'admin')
+    on conflict (id) do update set role = 'admin';
+  insert into public.magazine_imports (created_by, publication, issue, file_path, page_count)
+    values ('${ADMIN_USER}', 'Régal', 'Hors-Série N31',
+            '${ADMIN_USER}/magazines/fixture/original.pdf', 100);
+`);
+
+// TEST_USER est un utilisateur ordinaire : il ne doit rien voir du tout.
+await db.exec(
+  `set role authenticated; select set_config('request.jwt.claim.sub', '${TEST_USER}', false);`,
+);
+await assertThat(
+  db,
+  "RLS: un utilisateur ordinaire ne voit aucun import magazine",
+  'select count(*) from public.magazine_imports',
+  0,
+);
+let importRefused = false;
+try {
+  await db.exec(`
+    insert into public.magazine_imports (created_by, file_path)
+    values ('${TEST_USER}', '${TEST_USER}/magazines/x/original.pdf');
+  `);
+} catch {
+  importRefused = true;
+}
+console.log(
+  `${importRefused ? '  ok  ' : '  FAIL'} RLS: un utilisateur ordinaire ne peut pas créer un import magazine`,
+);
+if (!importRefused) failures += 1;
+
+await db.exec(
+  `select set_config('request.jwt.claim.sub', '${ADMIN_USER}', false);`,
+);
+await assertThat(
+  db,
+  "RLS: l'admin voit les imports magazine",
+  'select count(*) from public.magazine_imports',
+  1,
+);
+await db.exec('reset role;');
+
+await assertThat(
+  db,
+  'un item importé exige une recette',
+  `select count(*) from (
+     select 1 from public.magazine_import_items limit 0
+   ) empty`,
+  0,
+);
+let itemWithoutRecipeRefused = false;
+try {
+  await db.exec(`
+    insert into public.magazine_import_items (import_id, title, status)
+    select id, 'Gaspacho', 'imported' from public.magazine_imports limit 1;
+  `);
+} catch {
+  itemWithoutRecipeRefused = true;
+}
+console.log(
+  `${itemWithoutRecipeRefused ? '  ok  ' : '  FAIL'} un item ne peut pas être « imported » sans recette`,
+);
+if (!itemWithoutRecipeRefused) failures += 1;
+
 await db.close();
 
 if (failures > 0) {

@@ -28,8 +28,15 @@ import type { ChefMode, Difficulty, DialKind, EquipmentType, UnitKind } from '@/
  * and what is parsed is the structured object the reading pass produced from
  * that caption. Which network it came from survives in the external id
  * (`instagram:C8xY…`), where it is data rather than a second code path.
+ *
+ * `magazine` is the odd one out and has no entry in `IMPORTERS`: there is no URL
+ * to detect and no page to parse, because the source is a PDF read by
+ * `src/lib/magazine-import`. It appears here so that a magazine recipe travels
+ * through the *same* `RawRecipe → CanonicalRecipe` normalizer as every other
+ * source — which is the whole point, and also what makes migration 14 apply to
+ * it: `source_provider = 'magazine'` cannot be published.
  */
-export type ProviderId = 'cookomix' | 'cookidoo' | 'social';
+export type ProviderId = 'cookomix' | 'cookidoo' | 'social' | 'magazine';
 
 /* ---------------------------------------------------------------------------
  * Raw side
