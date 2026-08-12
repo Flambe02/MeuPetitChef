@@ -275,7 +275,16 @@ export default function RecipeScreen() {
                     {String(position + 1).padStart(2, '0')}
                   </DataLabel>
                   <div className="min-w-0 flex-1">
-                    <p className="text-body leading-[1.5] text-ink">{step.instruction}</p>
+                    {/* The verb lives in its own column because cook mode shows
+                        it big above the sentence. Dropped here, the sentence
+                        reads as a fragment — "as batatas em fatias bem finas" —
+                        since the instruction deliberately does not repeat it. */}
+                    {step.verb ? (
+                      <p className="font-mono text-[11px] tracking-[0.14em] text-rouge uppercase">
+                        {step.verb}
+                      </p>
+                    ) : null}
+                    <p className="mt-1 text-body leading-[1.5] text-ink">{step.instruction}</p>
                     <div className="mt-2.5 flex flex-wrap items-center gap-1.5">
                       <span className="sn-badge">{EQUIPMENT_THEME[step.equipment].short}</span>
                       {step.dials.map((dial) => (

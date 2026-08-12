@@ -535,8 +535,12 @@ doit apparaître dans les faits extraits.
   20 min à 100 °C parce que le Thermomix l'était n'est pas une conversion,
   c'est une copie qui ne cuira pas.
 
-Dans l'app : bouton **« Criar minha versão »** sur `/importar`, après
-l'enregistrement de la référence. Les appareils viennent du profil.
+Dans l'app : bouton **« Cozinhar agora »** sur `/importar`, juste après la
+lecture — avant tout enregistrement. Les faits sont pris sur la recette
+canonique en mémoire plutôt qu'en base, ce qui est délibéré : une légende sans
+nombre de portions ni durée ne passe pas la validation, ne devient donc jamais
+une ligne, et c'est précisément le cas pour lequel ce bouton existe. Ce que la
+source n'a pas donné, le chef l'écrit. Les appareils viennent du profil.
 
 ---
 

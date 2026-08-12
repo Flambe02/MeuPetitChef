@@ -1,6 +1,6 @@
 import { AlertTriangle, Check, FileJson, Link2, X } from 'lucide-react';
 import { useState } from 'react';
-import { Link } from 'react-router';
+import { useNavigate } from 'react-router';
 
 import { routes } from '@/app/routes';
 import { ScreenHeader } from '@/components/ScreenHeader';
@@ -9,8 +9,10 @@ import { Button } from '@/components/ui/Button';
 import { Card, CardTitle, DataLabel } from '@/components/ui/Card';
 import { EmptyState, Spinner } from '@/components/ui/states';
 import { EQUIPMENT_THEME } from '@/domain/equipment';
-import { useCreateOwnVersion } from '@/features/reference/hooks';
+import type { EquipmentType } from '@/domain/types';
+import { useVersionFromImport } from '@/features/reference/hooks';
 import { useEquipment } from '@/features/profile/hooks';
+import type { ImportOutcome } from '@/features/import/api';
 import { useAnalyzeImport, useImports, useSaveImport } from '@/features/import/hooks';
 import {
   MAX_IMAGES,
@@ -53,21 +55,20 @@ const PROVIDERS: { id: ProviderId; label: string }[] = [
 export default function ImportScreen() {
   const [url, setUrl] = useState('');
   const [source, setSource] = useState('');
-  const [provider, setProvider] = useState<ProviderId | null>(null);
   const [images, setImages] = useState<PreparedImage[]>([]);
   const [imageError, setImageError] = useState<string | null>(null);
 
   const analyze = useAnalyzeImport();
   const save = useSaveImport();
-  const own = useCreateOwnVersion();
   const equipment = useEquipment();
   const imports = useImports();
 
+  // Shown, not chosen: the address says which site it is, and the only thing a
+  // manual override ever did was let someone pick the wrong parser.
   const detected = url.trim() ? (detectProvider(url.trim())?.id ?? null) : null;
-  const activeProvider = provider ?? detected;
 
   // The appliances the cook actually owns drive the rewrite.
-  const myEquipment = (equipment.data ?? []).map((row) => row.equipment);
+  const myEquipment: EquipmentType[] = (equipment.data ?? []).map((row) => row.equipment);
 
   const analyzed = analyze.data ?? null;
   const outcome = analyzed?.outcome ?? null;
@@ -75,7 +76,6 @@ export default function ImportScreen() {
   const reset = () => {
     analyze.reset();
     save.reset();
-    own.reset();
   };
 
   /**
@@ -139,50 +139,50 @@ export default function ImportScreen() {
             />
           </div>
 
-          <div className="mt-2 flex flex-wrap items-center gap-2">
-            {PROVIDERS.map((entry) => (
-              <button
-                key={entry.id}
-                type="button"
-                onClick={() => {
-                  setProvider(provider === entry.id ? null : entry.id);
-                  reset();
-                }}
-                aria-pressed={activeProvider === entry.id}
-                className={cn('sn-tag')}
-                data-active={activeProvider === entry.id || undefined}
-              >
-                {entry.label}
-              </button>
-            ))}
-            {detected ? (
-              <span className="text-small text-ink-muted">detectado pelo endereço</span>
-            ) : null}
-          </div>
+          {detected ? (
+            <p className="mt-2 text-small text-ink-muted">
+              {PROVIDERS.find((entry) => entry.id === detected)?.label} — reconhecido pelo endereço.
+            </p>
+          ) : null}
 
-          <label className="mt-4 block text-small text-ink-muted" htmlFor="import-source">
-            Ou cole o texto da receita <span className="text-ink-muted">(opcional)</span>
-          </label>
-          <textarea
-            id="import-source"
-            value={source}
-            onChange={(event) => {
-              setSource(event.target.value);
-              reset();
-            }}
-            rows={4}
-            placeholder="A legenda do post, ou o conteúdo da página (Ctrl+U). Use quando o link não abrir sozinho."
-            className="mt-1 w-full rounded-lg border border-hairline bg-transparent p-3 font-mono text-[12px] text-ink outline-none placeholder:text-ink-muted"
-          />
+          {/* Everything below is the fallback, and folded away by default. The
+              screen has one job — take a link — and showing three ways to do it
+              at once made the one that works look like an option among others.
+              The provider chips went with it: the address already says which
+              site it is, and forcing the wrong one only ever broke an import. */}
+          <details className="mt-4 [&>summary]:list-none">
+            <summary className="cursor-pointer text-small font-semibold text-ink underline underline-offset-4">
+              O link não abriu?
+            </summary>
 
-          {/* ── Screenshots ──────────────────────────────────────────── */}
-          {/* The way in that always works. A private post has no link worth
-              pasting and no caption to copy, but it is right there on screen —
-              so print it, one screen per print, and send the lot. */}
-          <label className="mt-4 block text-small text-ink-muted" htmlFor="import-images">
-            Ou envie capturas de tela do post
-          </label>
-          <input
+            <p className="mt-3 text-small text-ink-muted">
+              Posts privados e páginas que pedem login não abrem sozinhos. Mande capturas de tela do
+              post, ou cole o texto da receita.
+            </p>
+
+            <label className="mt-4 block text-small text-ink-muted" htmlFor="import-source">
+              Texto da receita
+            </label>
+            <textarea
+              id="import-source"
+              value={source}
+              onChange={(event) => {
+                setSource(event.target.value);
+                reset();
+              }}
+              rows={4}
+              placeholder="A legenda do post, ou o conteúdo da página (Ctrl+U)."
+              className="mt-1 w-full rounded-lg border border-hairline bg-transparent p-3 font-mono text-[12px] text-ink outline-none placeholder:text-ink-muted"
+            />
+
+            {/* ── Screenshots ────────────────────────────────────────── */}
+            {/* The way in that always works. A private post has no link worth
+                pasting and no caption to copy, but it is right there on screen
+                — so print it, one screen per print, and send the lot. */}
+            <label className="mt-4 block text-small text-ink-muted" htmlFor="import-images">
+              Capturas de tela do post
+            </label>
+            <input
             id="import-images"
             type="file"
             accept="image/*"
@@ -190,51 +190,45 @@ export default function ImportScreen() {
             onChange={(event) => {
               void addImages(event.target.files);
               // Cleared so picking the same file twice still fires a change.
-              event.target.value = '';
-            }}
-            className="mt-1 block w-full text-small text-ink-muted file:mr-3 file:rounded-lg file:border file:border-hairline file:bg-transparent file:px-3 file:py-2 file:text-small file:font-semibold file:text-ink"
-          />
+                event.target.value = '';
+              }}
+              className="mt-1 block w-full text-small text-ink-muted file:mr-3 file:rounded-lg file:border file:border-hairline file:bg-transparent file:px-3 file:py-2 file:text-small file:font-semibold file:text-ink"
+            />
 
-          {images.length > 0 ? (
-            <ul className="mt-3 flex flex-wrap gap-2">
-              {images.map((image, index) => (
-                <li key={`${image.name}-${index}`} className="relative">
-                  <img
-                    src={image.dataUrl}
-                    alt=""
-                    className="size-20 rounded-lg border border-hairline object-cover"
-                  />
-                  <span className="absolute top-1 left-1 rounded-xs bg-graphite-900/80 px-1 font-mono text-[10px] text-porcelain-100">
-                    {index + 1}
-                  </span>
-                  <button
-                    type="button"
-                    aria-label={`Remover a captura ${index + 1}`}
-                    onClick={() => {
-                      setImages(images.filter((_, position) => position !== index));
-                      reset();
-                    }}
-                    className="absolute -top-1.5 -right-1.5 flex size-6 items-center justify-center rounded-pill border border-hairline bg-raised text-ink"
-                  >
-                    <X aria-hidden className="size-3.5" />
-                  </button>
-                </li>
-              ))}
-            </ul>
-          ) : null}
+            {images.length > 0 ? (
+              <ul className="mt-3 flex flex-wrap gap-2">
+                {images.map((image, index) => (
+                  <li key={`${image.name}-${index}`} className="relative">
+                    <img
+                      src={image.dataUrl}
+                      alt=""
+                      className="size-20 rounded-lg border border-hairline object-cover"
+                    />
+                    <span className="absolute top-1 left-1 rounded-xs bg-graphite-900/80 px-1 font-mono text-[10px] text-porcelain-100">
+                      {index + 1}
+                    </span>
+                    <button
+                      type="button"
+                      aria-label={`Remover a captura ${index + 1}`}
+                      onClick={() => {
+                        setImages(images.filter((_, position) => position !== index));
+                        reset();
+                      }}
+                      className="absolute -top-1.5 -right-1.5 flex size-6 items-center justify-center rounded-pill border border-hairline bg-raised text-ink"
+                    >
+                      <X aria-hidden className="size-3.5" />
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            ) : null}
 
-          {imageError ? <p className="mt-2 text-small text-rouge">{imageError}</p> : null}
-
-          <p className="mt-2 text-small text-ink-muted">
-            {images.length > 0
-              ? 'Vamos ler as capturas na ordem em que aparecem — uma legenda cortada em várias telas vira uma receita só.'
-              : source.trim()
-                ? 'Vamos ler o texto colado — o endereço serve só para registrar a origem.'
-                : 'Buscamos a página para você. Posts privados ou páginas que pedem login não abrem: nesses casos, mande capturas ou cole o texto.'}
-          </p>
+            {imageError ? <p className="mt-2 text-small text-rouge">{imageError}</p> : null}
+          </details>
 
           <Button
             className="mt-4"
+            size="lg"
             block
             disabled={analyze.isPending || (!source.trim() && !url.trim() && images.length === 0)}
             onClick={() =>
@@ -242,7 +236,6 @@ export default function ImportScreen() {
                 url: url.trim(),
                 source,
                 images: images.map((image) => image.dataUrl),
-                ...(activeProvider ? { provider: activeProvider } : {}),
               })
             }
           >
@@ -311,6 +304,21 @@ export default function ImportScreen() {
               ) : null}
             </Card>
 
+            {/* ── The one action ───────────────────────────────────────── */}
+            {/* What someone wants after reading "Bolo de fubá, 6 ingredientes"
+                is to cook it, not to file it. The chef writes the version for
+                the appliances they own — which is also what fills in whatever
+                the post left out — and the reference stays behind as a note of
+                where it came from. */}
+            <CookNow
+              outcome={outcome}
+              equipment={myEquipment}
+              disabled={analyze.isPending}
+              onSaveReference={() => save.mutate(outcome)}
+              saving={save.isPending}
+              saved={Boolean(save.data)}
+            />
+
             {outcome.validation.errors.length > 0 ? (
               <IssueList
                 title={`Erros (${outcome.validation.errors.length})`}
@@ -318,16 +326,29 @@ export default function ImportScreen() {
                 issues={outcome.validation.errors}
               />
             ) : null}
+
+            {/* Folded, and small. The warnings are honest bookkeeping — "the
+                caption gave no quantities" — but they are not what the person
+                came for, and five of them stacked full-size read as a failure. */}
             {outcome.validation.warnings.length > 0 ? (
-              <IssueList
-                title={`Avisos (${outcome.validation.warnings.length})`}
-                tone="warning"
-                issues={outcome.validation.warnings}
-              />
+              <details className="sn-card [&>summary]:list-none">
+                <summary className="cursor-pointer text-small text-ink-muted">
+                  Avisos ({outcome.validation.warnings.length}) — o que a fonte não trouxe
+                </summary>
+                <ul className="mt-2 flex flex-col gap-1">
+                  {outcome.validation.warnings.map((issue, index) => (
+                    <li key={`${issue.code}-${index}`} className="text-small text-ink-muted">
+                      · {issue.message}
+                    </li>
+                  ))}
+                </ul>
+              </details>
             ) : null}
 
-            <Card>
-              <CardTitle>Passos lidos</CardTitle>
+            <details className="sn-card [&>summary]:list-none">
+              <summary className="cursor-pointer text-small text-ink-muted">
+                Passos lidos ({outcome.summary.steps})
+              </summary>
               <ol className="mt-3 flex flex-col gap-3">
                 {outcome.recipe.paths[0]?.steps.map((step) => (
                   <li key={step.position} className="flex gap-3">
@@ -361,7 +382,7 @@ export default function ImportScreen() {
                   </li>
                 ))}
               </ol>
-            </Card>
+            </details>
 
             {analyzed?.duplicate ? (
               <Card pillar="finance">
@@ -376,91 +397,11 @@ export default function ImportScreen() {
               </Card>
             ) : null}
 
-            {/* ── The decision ────────────────────────────────────────── */}
-            {save.data ? (
-              <Card>
-                <CardTitle>Referência salva</CardTitle>
-                <p className="mt-2 text-body text-ink-muted">
-                  Ela fica na sua coleção, só sua. Uma receita importada de outro site é uma
-                  referência — serve para consultar, não para publicar.
-                </p>
-
-                {/* The step that makes it yours: not a translation of someone
-                    else's text, but a recipe written for the appliances you own. */}
-                {own.isSuccess ? (
-                  <>
-                    <p className="mt-3 text-body text-ink">
-                      Sua versão está pronta: <strong>{own.data.recipe.slug}</strong>
-                    </p>
-                    {own.data.originality.warnings.map((warning, index) => (
-                      <p key={index} className="mt-1 text-small text-ink-muted">
-                        {warning.message}
-                      </p>
-                    ))}
-                    <Link
-                      to={routes.recipe(own.data.recipe.slug)}
-                      className="mt-2 inline-block text-body font-semibold text-rouge underline underline-offset-4"
-                    >
-                      Abrir a minha versão
-                    </Link>
-                  </>
-                ) : (
-                  <>
-                    <Button
-                      className="mt-3"
-                      block
-                      disabled={own.isPending}
-                      onClick={() =>
-                        own.mutate({
-                          referenceId: save.data!.id,
-                          equipment: myEquipment,
-                          mode: 'normal',
-                        })
-                      }
-                    >
-                      {own.isPending ? 'Escrevendo…' : 'Criar minha versão'}
-                    </Button>
-                    <p className="mt-2 text-small text-ink-muted">
-                      {myEquipment.length > 0
-                        ? `Escrita do zero para: ${myEquipment
-                            .map((item) => EQUIPMENT_THEME[item]?.short ?? item)
-                            .join(', ')}.`
-                        : 'Cadastre seus aparelhos em Equipamentos para um preparo sob medida.'}
-                    </p>
-                  </>
-                )}
-                {own.isError ? (
-                  <p className="mt-2 text-small text-rouge">{own.error.message}</p>
-                ) : null}
-
-                <Link
-                  to={routes.recipe(save.data.slug)}
-                  className="mt-3 block text-small text-ink-muted underline underline-offset-4"
-                >
-                  Ver a referência
-                </Link>
-              </Card>
-            ) : (
-              <div className="flex flex-col gap-2">
-                <Button
-                  block
-                  disabled={save.isPending || !outcome.validation.ok}
-                  onClick={() => save.mutate(outcome)}
-                >
-                  {save.isPending ? 'Salvando…' : 'Importar receita'}
-                </Button>
-                {!outcome.validation.ok ? (
-                  <p className="text-center text-small text-ink-muted">
-                    Corrija os erros na fonte antes de importar.
-                  </p>
-                ) : null}
-                {save.isError ? (
-                  <p className="text-small text-rouge">
-                    {save.error instanceof Error ? save.error.message : 'Não deu certo.'}
-                  </p>
-                ) : null}
-              </div>
-            )}
+            {save.isError ? (
+              <p className="text-small text-rouge">
+                {save.error instanceof Error ? save.error.message : 'Não deu certo.'}
+              </p>
+            ) : null}
           </>
         ) : null}
 
@@ -502,6 +443,81 @@ export default function ImportScreen() {
         </Card>
       </div>
     </>
+  );
+}
+
+/**
+ * The end of the import, and the only decision worth putting in front of
+ * someone: cook it now, or keep it for later.
+ *
+ * "Cozinhar agora" is not a shortcut past the review — it is the step that
+ * turns a reference into something cookable. The chef rewrites the recipe for
+ * the appliances this cook owns, in pt-BR, and fills in what the source left
+ * out: a caption with no serving count and no total time comes back with both,
+ * plus the dials the cook screen needs. It is also the only output that may be
+ * published, which is why the reference beside it stays private.
+ */
+function CookNow({
+  outcome,
+  equipment,
+  disabled,
+  onSaveReference,
+  saving,
+  saved,
+}: {
+  outcome: ImportOutcome;
+  equipment: EquipmentType[];
+  disabled: boolean;
+  onSaveReference: () => void;
+  saving: boolean;
+  saved: boolean;
+}) {
+  const navigate = useNavigate();
+  const version = useVersionFromImport();
+
+  const cook = () => {
+    version.mutate(
+      { outcome, equipment, mode: 'normal' },
+      {
+        onSuccess: (result) => {
+          // The reference is filed on the way out rather than first: it is
+          // bookkeeping, and it must never stand between the cook and the pan.
+          onSaveReference();
+          void navigate(routes.recipe(result.recipe.slug));
+        },
+      },
+    );
+  };
+
+  return (
+    <Card>
+      <Button block size="lg" disabled={disabled || version.isPending} onClick={cook}>
+        {version.isPending ? 'O chef está escrevendo…' : 'Cozinhar agora'}
+      </Button>
+
+      <p className="mt-2 text-center text-small text-ink-muted">
+        {equipment.length > 0
+          ? `O chef escreve o preparo para: ${equipment
+              .map((item) => EQUIPMENT_THEME[item]?.short ?? item)
+              .join(', ')}.`
+          : 'Cadastre seus aparelhos em Equipamentos para um preparo sob medida.'}
+      </p>
+
+      {version.isError ? (
+        <p className="mt-2 text-small text-rouge">{version.error.message}</p>
+      ) : null}
+
+      <Button
+        className="mt-3"
+        variant="ghost"
+        block
+        size="md"
+        disabled={saving || saved || !outcome.validation.ok}
+        onClick={onSaveReference}
+      >
+        {saved ? 'Guardada como referência' : saving ? 'Guardando…' : 'Só guardar como referência'}
+      </Button>
+    </Card>
   );
 }
 

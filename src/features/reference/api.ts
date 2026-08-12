@@ -15,10 +15,8 @@
  * `checkOriginality` is the backstop for when it does not.
  */
 import type { ChefMode, EquipmentType } from '@/domain/types';
-import { supabase } from '@/lib/supabase/client';
 import { DataError } from '@/lib/supabase/errors';
 import { machineFacts } from '@/lib/recipe-import/adapt';
-import { readForAdaptation } from '@/lib/recipe-import/adapt-persist';
 import {
   buildBrief,
   checkOriginality,
@@ -26,11 +24,12 @@ import {
   type RecipeFacts,
   type TechniqueFact,
 } from '@/lib/recipe-import/reference';
+import type { ImportOutcome } from '@/features/import/api';
 import type { ValidationResult } from '@/lib/recipe-import/types';
 import { generateRecipe, saveGeneratedDraft, type GeneratedRecipe } from '@/features/generate/api';
 
-export interface OwnVersionInput {
-  referenceId: string;
+export interface VersionFromImportInput {
+  outcome: ImportOutcome;
   equipment: EquipmentType[];
   mode: ChefMode;
   servings?: number;
@@ -60,25 +59,55 @@ function techniquesOf(recipe: GeneratedRecipe): TechniqueFact[] {
 }
 
 /**
- * Reads a reference, writes an original recipe from it.
+ * The same thing, from an import that has not been saved — and may not be
+ * saveable.
  *
- * Nothing of the reference's prose reaches the chef: `extractFacts` drops the
- * instructions, the description and the step wording, and `buildBrief` sends
- * only the dish, the ingredients and the timings. The reference itself is left
- * untouched — it stays a private draft.
+ * "Cozinhar agora" has to work on what a caption actually gives, which is
+ * frequently a list of ingredients and a method with no serving count, no total
+ * time, and sometimes no steps at all. Waiting for that import to pass
+ * validation and reach the database first would refuse exactly the cases the
+ * button exists for.
+ *
+ * So the facts are taken from the canonical recipe in memory. What the source
+ * left out, the chef fills in — that is the *point* of this path, not a
+ * shortcut: it is writing a recipe for the appliances this cook owns, and a
+ * recipe it writes has servings, timings and dials whether the post had them or
+ * not. Nothing of the source's prose travels: `extractFacts` drops it, here as
+ * everywhere else.
  */
-export async function createOwnVersion(
+export async function createVersionFromImport(
   userId: string,
-  input: OwnVersionInput,
+  input: VersionFromImportInput,
 ): Promise<OwnVersionOutcome> {
-  const source = await readForAdaptation(supabase, input.referenceId);
+  const recipe = input.outcome.recipe;
+  const steps = recipe.paths.flatMap((path) => path.steps);
 
-  const steps = source.stepRows.map((row, index) => ({
-    equipment: row.equipment,
-    instruction: source.request.steps[index]?.instruction ?? '',
-  }));
+  const facts = extractFacts(
+    {
+      recipeId: '',
+      sourceLanguage: recipe.language,
+      title: recipe.title,
+      subtitle: recipe.subtitle,
+      description: recipe.description,
+      servings: recipe.servings,
+      ingredients: recipe.ingredients.map((ingredient, index) => ({
+        id: String(index),
+        displayName: ingredient.normalizedName ?? ingredient.sourceName,
+        quantity: ingredient.quantity,
+        unit: ingredient.unit,
+        note: ingredient.note,
+      })),
+      steps: steps.map((step, index) => ({
+        id: String(index),
+        verb: step.verb,
+        instruction: step.instruction,
+      })),
+      notes: [],
+    },
+    steps.map((step) => ({ equipment: step.equipment, instruction: step.instruction })),
+    input.outcome.provider,
+  );
 
-  const facts = extractFacts(source.request, steps);
   const equipment = input.equipment.length > 0 ? input.equipment : (['none'] as EquipmentType[]);
   const servings = input.servings ?? facts.servings;
 
@@ -90,10 +119,7 @@ export async function createOwnVersion(
   });
 
   const originality = checkOriginality(
-    {
-      instructions: source.request.steps.map((step) => step.instruction),
-      techniques: facts.techniques,
-    },
+    { instructions: steps.map((step) => step.instruction), techniques: facts.techniques },
     {
       instructions: generated.paths.flatMap((path) => path.steps.map((step) => step.instruction)),
       techniques: techniquesOf(generated),
@@ -101,9 +127,6 @@ export async function createOwnVersion(
   );
 
   if (!originality.ok) {
-    // Refused rather than saved-with-a-warning: a recipe that repeats the
-    // source's sentences is the source's recipe, and publishing it is the one
-    // thing this whole design exists to prevent.
     throw new DataError(
       `A receita gerada ficou perto demais da referência: ${originality.errors
         .map((issue) => issue.message)
@@ -111,9 +134,15 @@ export async function createOwnVersion(
     );
   }
 
-  // Saved through the generation repository, so it lands with no
-  // `source_provider` — an original recipe, publishable like any other.
-  const recipe = await saveGeneratedDraft(userId, generated, input.mode);
-
-  return { recipe, facts, originality };
+  const saved = await saveGeneratedDraft(userId, generated, input.mode);
+  return { recipe: saved, facts, originality };
 }
+
+/*
+ * There used to be a second entry point here, `createOwnVersion`, which did the
+ * same work starting from a reference already saved in the database. It went
+ * with the two-step screen it belonged to: import, then save, then press
+ * "Criar minha versão". One button now does the whole thing, and it does it
+ * from the import in memory — which also works for the many captions that never
+ * pass validation and so never become a row at all.
+ */

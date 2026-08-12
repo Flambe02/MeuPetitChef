@@ -3,20 +3,25 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useSession } from '@/features/auth/session-context';
 import { keys } from '@/lib/query/keys';
 
-import { createOwnVersion, type OwnVersionInput, type OwnVersionOutcome } from './api';
+import {
+  createVersionFromImport,
+  type OwnVersionOutcome,
+  type VersionFromImportInput,
+} from './api';
 
 /**
- * "Criar minha versão".
+ * "Cozinhar agora" — the chef writes the recipe straight from what was just
+ * imported, without waiting for it to be saved as a reference first.
  *
- * Takes a couple of seconds — the chef is writing a whole recipe — so nothing
+ * Takes a couple of seconds — a whole recipe is being written — so nothing
  * about this is optimistic.
  */
-export function useCreateOwnVersion() {
+export function useVersionFromImport() {
   const { user } = useSession();
   const client = useQueryClient();
 
-  return useMutation<OwnVersionOutcome, Error, OwnVersionInput>({
-    mutationFn: (input) => createOwnVersion(user!.id, input),
+  return useMutation<OwnVersionOutcome, Error, VersionFromImportInput>({
+    mutationFn: (input) => createVersionFromImport(user!.id, input),
     onSuccess: async () => {
       await client.invalidateQueries({ queryKey: keys.recipes.all });
     },
