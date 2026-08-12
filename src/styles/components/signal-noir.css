@@ -1,0 +1,317 @@
+/* Signal Noir — component primitives. Mirrored verbatim from the Claude Design
+   design system `signal-noir-tprc-design-system-b789f54c-5b83-41b7-ba0a-e94fd81ca1b5`,
+   file `components/core/core.css`. Treat as generated: re-pull rather than edit.
+
+   Only the classes the prototype actually consumes are mirrored. Measured usage
+   across `Meu Petit Chef.dc.html`:
+
+     41x sn-datalabel   (default + data-tone="signal")
+      9x sn-btn         (data-variant="quiet" only)
+      5x sn-iconbtn     (data-variant="outline" only)
+      3x sn-card        (data-pillar="finance" + data-padding="sm")
+      2x sn-tag / sn-tag__x
+      2x sn-badge
+
+   The unused variants are kept anyway — they are three lines each and dropping
+   them would guarantee drift the first time a screen needs one. What is *not*
+   mirrored is the rest of the system (Dialog, Toast, Tooltip, Select, Switch,
+   Radio, Tabs, Input, Checkbox, Icon, Wordmark): the prototype styles those
+   inline from tokens, so mirroring them would add a library nothing renders.
+
+   Note for anyone reaching for `--radius-control` (3px) on a screen: don't.
+   The prototype's own surfaces and CTAs use --radius-lg (10px), --radius-xl
+   (14px) and pills. 3px belongs to these DS controls only. */
+
+/* Button */
+.sn-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-3);
+  border: 1px solid transparent;
+  border-radius: var(--radius-control);
+  font-family: var(--font-body);
+  font-weight: var(--weight-strong);
+  font-size: var(--size-small);
+  letter-spacing: -0.005em;
+  height: var(--control-height-m);
+  padding: 0 var(--space-5);
+  cursor: pointer;
+  transition: var(--transition-control);
+  white-space: nowrap;
+  text-decoration: none;
+}
+.sn-btn[data-size='sm'] {
+  height: var(--control-height-s);
+  padding: 0 var(--space-4);
+  font-size: 12px;
+  gap: var(--space-2);
+}
+.sn-btn[data-size='lg'] {
+  height: var(--control-height-l);
+  padding: 0 var(--space-6);
+  font-size: var(--size-body);
+}
+.sn-btn[data-variant='primary'] {
+  background: var(--porcelain-100);
+  color: var(--graphite-900);
+}
+.sn-btn[data-variant='primary']:hover {
+  background: #ffffff;
+}
+.sn-btn[data-variant='primary']:active {
+  background: var(--porcelain-300);
+}
+.sn-btn[data-variant='signal'] {
+  background: transparent;
+  color: var(--rouge-signal);
+  border-color: var(--rouge-signal);
+}
+.sn-btn[data-variant='signal']:hover {
+  color: var(--rouge-hover);
+  border-color: var(--rouge-hover);
+  box-shadow: 0 0 20px rgba(232, 52, 28, 0.18);
+}
+.sn-btn[data-variant='signal']:active {
+  color: var(--rouge-press);
+  border-color: var(--rouge-press);
+  box-shadow: none;
+}
+.sn-btn[data-variant='ghost'] {
+  background: transparent;
+  color: var(--text-primary);
+  border-color: var(--border-strong);
+}
+.sn-btn[data-variant='ghost']:hover {
+  border-color: var(--text-primary);
+  background: rgba(245, 243, 238, 0.04);
+}
+.sn-btn[data-variant='quiet'] {
+  background: transparent;
+  color: var(--text-secondary);
+  padding: 0 var(--space-2);
+}
+.sn-btn[data-variant='quiet']:hover {
+  color: var(--text-primary);
+}
+.sn-btn:disabled {
+  opacity: 0.38;
+  cursor: not-allowed;
+  box-shadow: none;
+}
+
+/* IconButton */
+.sn-iconbtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--control-height-m);
+  height: var(--control-height-m);
+  border-radius: var(--radius-control);
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: var(--transition-control);
+}
+.sn-iconbtn[data-size='sm'] {
+  width: var(--control-height-s);
+  height: var(--control-height-s);
+}
+.sn-iconbtn:hover {
+  color: var(--text-primary);
+  background: rgba(245, 243, 238, 0.06);
+}
+.sn-iconbtn[data-variant='outline'] {
+  border-color: var(--border-hairline);
+}
+.sn-iconbtn[data-variant='outline']:hover {
+  border-color: var(--border-strong);
+}
+.sn-iconbtn[data-variant='signal'] {
+  color: var(--rouge-signal);
+}
+.sn-iconbtn[data-variant='signal']:hover {
+  color: var(--rouge-hover);
+  background: var(--rouge-dim);
+}
+.sn-iconbtn:disabled {
+  opacity: 0.38;
+  cursor: not-allowed;
+}
+
+/* Card */
+.sn-card {
+  position: relative;
+  background: var(--surface-card);
+  border: 1px solid var(--border-hairline);
+  border-radius: var(--radius-card);
+  padding: var(--space-6);
+  box-shadow: var(--shadow-card);
+  transition: var(--transition-control);
+}
+.sn-card[data-padding='sm'] {
+  padding: var(--space-5);
+}
+.sn-card[data-padding='lg'] {
+  padding: var(--space-7);
+}
+.sn-card[data-padding='none'] {
+  padding: 0;
+}
+.sn-card[data-interactive] {
+  cursor: pointer;
+}
+.sn-card[data-interactive]:hover {
+  border-color: var(--border-strong);
+  background: var(--graphite-700);
+}
+.sn-card[data-pillar]::before {
+  content: '';
+  position: absolute;
+  inset: -1px auto auto -1px;
+  width: calc(100% + 2px);
+  height: var(--rule-accent);
+  border-radius: var(--radius-card) var(--radius-card) 0 0;
+}
+.sn-card[data-pillar='conversation']::before {
+  background: var(--pillar-conversation);
+}
+.sn-card[data-pillar='music']::before {
+  background: var(--pillar-music);
+}
+.sn-card[data-pillar='finance']::before {
+  background: var(--pillar-finance);
+}
+.sn-card[data-pillar='conversation'] .sn-card__eyebrow {
+  color: var(--pillar-conversation);
+}
+.sn-card[data-pillar='music'] .sn-card__eyebrow {
+  color: var(--pillar-music);
+}
+.sn-card[data-pillar='finance'] .sn-card__eyebrow {
+  color: var(--pillar-finance);
+}
+.sn-card__eyebrow {
+  font-family: var(--font-mono);
+  font-size: var(--size-label);
+  letter-spacing: var(--tracking-label);
+  text-transform: uppercase;
+  color: var(--text-muted);
+  display: block;
+  margin-bottom: var(--space-4);
+}
+.sn-card__title {
+  font-family: var(--font-display);
+  font-weight: var(--weight-display);
+  font-size: var(--size-display-s);
+  line-height: var(--leading-display-s);
+  letter-spacing: var(--tracking-display-s);
+  margin: 0 0 var(--space-4);
+  color: var(--text-primary);
+}
+
+/* Badge */
+.sn-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-family: var(--font-mono);
+  font-size: var(--size-label);
+  letter-spacing: var(--tracking-label);
+  text-transform: uppercase;
+  line-height: 1;
+  padding: 5px var(--space-3);
+  border-radius: var(--radius-xs);
+  border: 1px solid var(--border-hairline);
+  color: var(--text-secondary);
+  background: transparent;
+}
+.sn-badge__dot {
+  width: 4px;
+  height: 4px;
+  border-radius: var(--radius-pill);
+  background: currentColor;
+  flex: none;
+}
+.sn-badge[data-tone='signal'] {
+  color: var(--rouge-signal);
+  border-color: rgba(232, 52, 28, 0.42);
+}
+.sn-badge[data-tone='conversation'] {
+  color: var(--circuit-cyan);
+  border-color: rgba(55, 224, 216, 0.38);
+}
+.sn-badge[data-tone='music'] {
+  color: var(--voltage-violet);
+  border-color: rgba(123, 92, 255, 0.42);
+}
+.sn-badge[data-tone='solid'] {
+  color: var(--graphite-900);
+  background: var(--porcelain-100);
+  border-color: transparent;
+}
+
+/* Tag */
+.sn-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-family: var(--font-body);
+  font-size: 12px;
+  line-height: 1;
+  padding: 6px var(--space-3);
+  border-radius: var(--radius-pill);
+  border: 1px solid var(--border-hairline);
+  color: var(--text-secondary);
+  transition: var(--transition-control);
+}
+.sn-tag:hover {
+  border-color: var(--border-strong);
+  color: var(--text-primary);
+}
+.sn-tag[data-active] {
+  color: var(--graphite-900);
+  background: var(--porcelain-100);
+  border-color: transparent;
+}
+.sn-tag__x {
+  display: inline-flex;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+  padding: 0;
+  opacity: 0.6;
+}
+.sn-tag__x:hover {
+  opacity: 1;
+}
+
+/* DataLabel */
+.sn-datalabel {
+  display: inline-flex;
+  align-items: baseline;
+  gap: var(--space-3);
+  font-family: var(--font-mono);
+  font-size: var(--size-label);
+  letter-spacing: var(--tracking-label);
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+.sn-datalabel[data-tone='primary'] {
+  color: var(--text-primary);
+}
+.sn-datalabel[data-tone='signal'] {
+  color: var(--rouge-signal);
+}
+.sn-datalabel[data-tone='conversation'] {
+  color: var(--circuit-cyan);
+}
+.sn-datalabel[data-tone='music'] {
+  color: var(--voltage-violet);
+}
+.sn-datalabel__value {
+  font-weight: 500;
+  color: var(--text-primary);
+  letter-spacing: 0;
+}

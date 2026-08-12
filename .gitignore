@@ -1,0 +1,48 @@
+node_modules/
+dist/
+dist-ssr/
+coverage/
+*.local
+
+# Env — only .env.example is committed
+.env
+.env.*
+!.env.example
+
+# Supabase CLI local state
+supabase/.branches/
+supabase/.temp/
+supabase/.env
+
+# Editors / OS
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.json
+.idea/
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Build tooling caches
+.vite/
+*.tsbuildinfo
+
+# Generated PWA artefacts
+dev-dist/
+public/pwa-*.png
+public/apple-touch-icon.png
+public/favicon.ico
+public/maskable-icon-512.png
+
+# Maquettes de reference (prototype Claude Design, 32 Mo) — locales seulement
+example/
+
+# Journal des imports par lot (npm run recipe:import-batch)
+.recipe-imports/
+
+# Liste d URLs generee (npm run recipe:urls)
+urls.txt
+
+# Artefacts de session locale (Playwright MCP, config Claude Code)
+.playwright-mcp/
+.claude/

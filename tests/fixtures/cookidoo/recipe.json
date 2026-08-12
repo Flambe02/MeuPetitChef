@@ -1,0 +1,56 @@
+{
+  "_comment": [
+    "Fixture : import Cookidoo en mode 3 (JSON fourni par l'utilisateur).",
+    "C'est un objet schema.org/Recipe — le format qu'un export, une extension",
+    "de navigateur ou un copier-coller de la balise JSON-LD produit.",
+    "Les champs inconnus (comme celui-ci) sont ignorés par l'importateur."
+  ],
+  "@context": "http://schema.org/",
+  "@type": "Recipe",
+  "name": "Sopa de abóbora com gengibre",
+  "image": "https://assets.tmecosys.com/image/upload/sopa-abobora.jpg",
+  "inLanguage": "pt-BR",
+  "totalTime": "PT30M",
+  "prepTime": "PT10M",
+  "recipeYield": "4 porções",
+  "recipeCategory": ["Sopas"],
+  "keywords": "vegetariano, sem glúten",
+  "recipeIngredient": [
+    "500 g de abóbora cabotiá em cubos",
+    "1 cebola cortada ao meio",
+    "20 g de gengibre fresco",
+    "600 g de água",
+    "1 colher de sopa de caldo de legumes",
+    "2 pitadas de pimenta-do-reino"
+  ],
+  "recipeInstructions": [
+    {
+      "@type": "HowToStep",
+      "name": "Triturar",
+      "text": "Coloque a cebola e o gengibre no copo e triture 5 seg/vel. 5."
+    },
+    {
+      "@type": "HowToStep",
+      "name": "Refogar",
+      "text": "Refogue 3 min/120°C/vel. 1."
+    },
+    {
+      "@type": "HowToStep",
+      "name": "Cozinhar",
+      "text": "Adicione a abóbora, a água e o caldo e cozinhe 20 min/100°C/vel. colher."
+    },
+    {
+      "@type": "HowToStep",
+      "name": "Bater",
+      "text": "Bata 1 min/vel. 8 até ficar cremoso."
+    }
+  ],
+  "nutrition": {
+    "@type": "NutritionInformation",
+    "calories": "98 kcal",
+    "proteinContent": "2.1 g",
+    "carbohydrateContent": "16 g",
+    "fatContent": "1.8 g",
+    "fiberContent": "3.4 g"
+  }
+}

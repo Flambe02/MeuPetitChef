@@ -1,0 +1,14 @@
+node_modules
+dist
+coverage
+dev-dist
+package-lock.json
+docs/ecran-mockup.pdf
+src/lib/supabase/database.types.ts
+src/styles/tokens/
+
+# Edge Functions : code Deno, hors du tsconfig du navigateur
+supabase/functions/
+
+# Fixtures : extraits de pages enregistrés, à garder tels quels
+tests/fixtures/

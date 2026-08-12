@@ -1,0 +1,95 @@
+/* Signal Noir — colour tokens. Mirrored from the Claude Design design system
+   `signal-noir-tprc-design-system-b789f54c-5b83-41b7-ba0a-e94fd81ca1b5`.
+   Treat this file as generated: re-pull it rather than hand-editing. */
+:root {
+  /* ── Base palette (the only six brand colours) ───────────────── */
+  --rouge-signal: #e8341c;
+  --graphite-noir: #0b0d10;
+  --porcelain: #f5f3ee;
+  --circuit-cyan: #37e0d8;
+  --voltage-violet: #7b5cff;
+  --steel: #8a8f98;
+
+  /* ── Graphite ramp (dark surfaces) ───────────────────────────── */
+  --graphite-900: #0b0d10;
+  --graphite-800: #101317;
+  --graphite-700: #161a1f;
+  --graphite-600: #1e232a;
+  --graphite-500: #282e36;
+  --graphite-400: #343b44;
+
+  /* ── Porcelain ramp (light surfaces) ─────────────────────────── */
+  --porcelain-50: #fbfaf7;
+  --porcelain-100: #f5f3ee;
+  --porcelain-200: #edeae2;
+  --porcelain-300: #e1ddd3;
+  --porcelain-400: #cfcabe;
+
+  /* ── Steel ramp (text + hairlines) ───────────────────────────── */
+  --steel-600: #5a6068;
+  --steel-500: #8a8f98;
+  --steel-400: #a8adb4;
+  --steel-300: #c6cacf;
+
+  /* ── Accent states ───────────────────────────────────────────── */
+  --rouge-hover: #ff4a31;
+  --rouge-press: #c82814;
+  --rouge-dim: rgba(232, 52, 28, 0.14);
+  --cyan-dim: rgba(55, 224, 216, 0.14);
+  --violet-dim: rgba(123, 92, 255, 0.16);
+
+  /* ── Pillars. One per frame, never two in the same composition. ──
+     `sn-card[data-pillar]` paints its top rule from these. */
+  --pillar-conversation: var(--circuit-cyan);
+  --pillar-music: var(--voltage-violet);
+  --pillar-finance: var(--rouge-signal);
+
+  /* ── Semantic aliases: Graphite (dark) theme ─────────────────── */
+  --bg-base: var(--graphite-900);
+  --bg-sunken: #07080a;
+  --bg-raised: var(--graphite-800);
+  --surface-card: var(--graphite-800);
+  --surface-inset: var(--graphite-700);
+  --surface-overlay: rgba(11, 13, 16, 0.78);
+
+  --text-primary: var(--porcelain-100);
+  --text-secondary: var(--steel-400);
+  --text-muted: var(--steel-500);
+  --text-inverse: var(--graphite-900);
+  --text-accent: var(--rouge-signal);
+  --text-link: var(--rouge-signal);
+  --text-link-hover: var(--rouge-hover);
+
+  --border-hairline: rgba(245, 243, 238, 0.1);
+  --border-strong: rgba(245, 243, 238, 0.22);
+  --border-accent: var(--rouge-signal);
+  --border-focus: var(--circuit-cyan);
+
+  --accent: var(--rouge-signal);
+  --accent-hover: var(--rouge-hover);
+  --accent-press: var(--rouge-press);
+  --accent-quiet: var(--rouge-dim);
+
+  /* ── Status ──────────────────────────────────────────────────── */
+  --status-ok: var(--circuit-cyan);
+  --status-warn: #e8a31c;
+  --status-error: var(--rouge-signal);
+  --status-idle: var(--steel-500);
+}
+
+[data-theme='porcelain'] {
+  --bg-base: var(--porcelain-100);
+  --bg-sunken: var(--porcelain-200);
+  --bg-raised: var(--porcelain-50);
+  --surface-card: var(--porcelain-50);
+  --surface-inset: var(--porcelain-200);
+  --surface-overlay: rgba(245, 243, 238, 0.82);
+
+  --text-primary: var(--graphite-900);
+  --text-secondary: var(--steel-600);
+  --text-muted: var(--steel-600);
+  --text-inverse: var(--porcelain-100);
+
+  --border-hairline: rgba(11, 13, 16, 0.12);
+  --border-strong: rgba(11, 13, 16, 0.26);
+}

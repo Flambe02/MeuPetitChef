@@ -1,0 +1,27 @@
+/* Signal Noir — elevation tokens. Mirrored from the design system.
+   Signal Noir is a hairline system first, a shadow system second. */
+:root {
+  --shadow-none: none;
+  --shadow-hairline: inset 0 1px 0 rgba(245, 243, 238, 0.06);
+  --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(245, 243, 238, 0.05);
+  --shadow-raised: 0 8px 24px rgba(0, 0, 0, 0.45), inset 0 1px 0 rgba(245, 243, 238, 0.06);
+  --shadow-overlay: 0 24px 64px rgba(0, 0, 0, 0.6);
+  --shadow-accent-glow: 0 0 0 1px var(--rouge-signal), 0 0 24px rgba(232, 52, 28, 0.22);
+
+  --focus-ring: 0 0 0 2px var(--bg-base), 0 0 0 4px var(--circuit-cyan);
+  --focus-ring-flat: 0 0 0 2px var(--circuit-cyan);
+
+  --blur-overlay: blur(14px) saturate(120%);
+  --blur-sticky: blur(20px) saturate(140%);
+
+  --scrim-top: linear-gradient(to bottom, rgba(11, 13, 16, 0.92), rgba(11, 13, 16, 0));
+  --scrim-bottom: linear-gradient(to top, rgba(11, 13, 16, 0.94), rgba(11, 13, 16, 0));
+}
+
+/* On porcelain the card shadow has to lighten, otherwise it reads as dirt. */
+[data-theme='porcelain'] {
+  --shadow-card: 0 1px 2px rgba(11, 13, 16, 0.06), 0 1px 1px rgba(11, 13, 16, 0.04);
+  --shadow-raised: 0 8px 24px rgba(11, 13, 16, 0.1);
+  --shadow-overlay: 0 24px 64px rgba(11, 13, 16, 0.18);
+  --scrim-bottom: linear-gradient(to top, rgba(245, 243, 238, 0.96), rgba(245, 243, 238, 0));
+}

@@ -1,0 +1,22 @@
+/* Signal Noir — motion tokens. Mirrored from the design system.
+   Signal: fast out, long settle. No bounce, no overshoot, ever. */
+:root {
+  --duration-instant: 80ms;
+  --duration-fast: 140ms;
+  --duration-base: 200ms;
+  --duration-slow: 320ms;
+  --duration-reveal: 560ms;
+
+  --ease-signal: cubic-bezier(0.2, 0.8, 0.2, 1);
+  --ease-exit: cubic-bezier(0.4, 0, 1, 1);
+  --ease-linear: linear;
+
+  --transition-control:
+    background-color var(--duration-fast) var(--ease-signal),
+    border-color var(--duration-fast) var(--ease-signal),
+    color var(--duration-fast) var(--ease-signal),
+    box-shadow var(--duration-fast) var(--ease-signal);
+  --transition-surface:
+    transform var(--duration-base) var(--ease-signal),
+    opacity var(--duration-base) var(--ease-signal);
+}

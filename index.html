@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="pt-BR" data-theme="porcelain">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1"
+    />
+    <meta name="theme-color" content="#F5F3EE" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#0B0D10" media="(prefers-color-scheme: dark)" />
+    <meta
+      name="description"
+      content="Receitas que se adaptam aos seus equipamentos, aos seus objetivos e às suas porções."
+    />
+
+    <!-- iOS standalone behaviour -->
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <meta name="apple-mobile-web-app-title" content="Petit Chef" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <link rel="icon" href="/favicon.ico" sizes="32x32" />
+    <link rel="icon" href="/pwa-192.png" type="image/png" sizes="192x192" />
+
+    <!-- Font hosts are third-party; warm the connection before first paint. -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link rel="preconnect" href="https://cdn.fontshare.com" crossorigin />
+
+    <title>Meu Petit Chef</title>
+  </head>
+  <body>
+    <div id="root"></div>
+    <noscript>
+      <p style="padding: 24px; font-family: sans-serif">
+        O Meu Petit Chef precisa de JavaScript para funcionar.
+      </p>
+    </noscript>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>

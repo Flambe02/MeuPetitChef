@@ -1,0 +1,54 @@
+/* Signal Noir — typography tokens. Mirrored from the design system. */
+:root {
+  --font-display: 'General Sans', 'Neue Montreal', -apple-system, Segoe UI, sans-serif;
+  --font-body: 'Inter', -apple-system, Segoe UI, sans-serif;
+  --font-mono: 'JetBrains Mono', 'SF Mono', ui-monospace, Menlo, monospace;
+
+  --weight-display: 700;
+  --weight-display-quiet: 600;
+  --weight-strong: 600;
+  --weight-medium: 500;
+  --weight-body: 400;
+
+  /* Display — General Sans 700, tight. Tracking tightens as size grows. */
+  --size-display-xl: 88px;
+  --leading-display-xl: 0.92;
+  --tracking-display-xl: -0.04em;
+  --size-display-l: 64px;
+  --leading-display-l: 0.94;
+  --tracking-display-l: -0.035em;
+  --size-display-m: 44px;
+  --leading-display-m: 1;
+  --tracking-display-m: -0.03em;
+  --size-display-s: 30px;
+  --leading-display-s: 1.08;
+  --tracking-display-s: -0.025em;
+
+  /* Titles + body — Inter */
+  --size-title: 22px;
+  --leading-title: 1.24;
+  --tracking-title: -0.015em;
+  --size-heading: 17px;
+  --leading-heading: 1.35;
+  --tracking-heading: -0.01em;
+  --size-body-l: 17px;
+  --leading-body-l: 1.62;
+  --tracking-body-l: -0.005em;
+  --size-body: 15px;
+  --leading-body: 1.6;
+  --tracking-body: 0;
+  --size-small: 13px;
+  --leading-small: 1.5;
+  --tracking-small: 0;
+
+  /* Data labels — JetBrains Mono, uppercase, wide */
+  --size-label: 11px;
+  --leading-label: 1.1;
+  --tracking-label: 0.16em;
+  --size-mono: 13px;
+  --leading-mono: 1.5;
+  --tracking-mono: 0;
+
+  --measure-prose: 66ch;
+  --measure-lede: 44ch;
+}

@@ -1,0 +1,32 @@
+/* Signal Noir — spacing tokens. Mirrored from the design system. */
+:root {
+  --space-0: 0px;
+  --space-1: 2px;
+  --space-2: 4px;
+  --space-3: 8px;
+  --space-4: 12px;
+  --space-5: 16px;
+  --space-6: 24px;
+  --space-7: 32px;
+  --space-8: 48px;
+  --space-9: 64px;
+  --space-10: 96px;
+  --space-11: 128px;
+  --space-12: 180px;
+
+  --gutter-inline: 24px;
+  --gutter-section: 96px;
+  --gutter-section-tight: 64px;
+  --max-width-page: 1240px;
+  --max-width-narrow: 760px;
+  --grid-gap: 24px;
+
+  --control-height-s: 30px;
+  --control-height-m: 38px;
+  --control-height-l: 46px;
+
+  /* App-specific: the cook screen needs thumb-sized targets, not desktop ones. */
+  --control-height-touch: 50px;
+  --app-max-width: 440px;
+  --tabbar-height: 64px;
+}

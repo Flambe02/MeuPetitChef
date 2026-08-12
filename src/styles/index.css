@@ -1,0 +1,252 @@
+/* ---------------------------------------------------------------------------
+   Meu Petit Chef — entry stylesheet.
+
+   Order matters:
+   1. Design-system tokens define the CSS custom properties.
+   2. Tailwind is imported.
+   3. `@theme inline` bridges the tokens into Tailwind utilities *by reference*,
+      so switching `data-theme` re-themes every utility at runtime with no
+      rebuild and no duplicated palette.
+   Never hardcode a hex value below this line.
+--------------------------------------------------------------------------- */
+
+@import './tokens/fonts.css';
+@import './tokens/colors.css';
+@import './tokens/typography.css';
+@import './tokens/spacing.css';
+@import './tokens/radius.css';
+@import './tokens/elevation.css';
+@import './tokens/motion.css';
+
+@import 'tailwindcss';
+
+/* Signal Noir component primitives, mirrored from the design system.
+   Imported *into* `@layer components` on purpose: unlayered CSS outranks every
+   Tailwind utility regardless of source order, so without this a screen writing
+   `<Card className="p-4">` would silently keep the DS's own 24px padding. */
+@import './components/signal-noir.css' layer(components);
+
+@theme inline {
+  /* ── Colours ──────────────────────────────────────────────────────────── */
+  --color-rouge: var(--rouge-signal);
+  --color-rouge-hover: var(--rouge-hover);
+  --color-rouge-press: var(--rouge-press);
+  --color-rouge-dim: var(--rouge-dim);
+  --color-cyan: var(--circuit-cyan);
+  --color-violet: var(--voltage-violet);
+
+  --color-graphite-900: var(--graphite-900);
+  --color-graphite-800: var(--graphite-800);
+  --color-graphite-700: var(--graphite-700);
+  --color-graphite-600: var(--graphite-600);
+  --color-graphite-500: var(--graphite-500);
+  --color-graphite-400: var(--graphite-400);
+
+  --color-porcelain-50: var(--porcelain-50);
+  --color-porcelain-100: var(--porcelain-100);
+  --color-porcelain-200: var(--porcelain-200);
+  --color-porcelain-300: var(--porcelain-300);
+  --color-porcelain-400: var(--porcelain-400);
+
+  --color-steel-600: var(--steel-600);
+  --color-steel-500: var(--steel-500);
+  --color-steel-400: var(--steel-400);
+  --color-steel-300: var(--steel-300);
+
+  /* Semantic — these are the ones screens should reach for. */
+  --color-base: var(--bg-base);
+  --color-sunken: var(--bg-sunken);
+  --color-raised: var(--bg-raised);
+  --color-card: var(--surface-card);
+  --color-inset: var(--surface-inset);
+  --color-overlay: var(--surface-overlay);
+
+  --color-ink: var(--text-primary);
+  --color-ink-secondary: var(--text-secondary);
+  --color-ink-muted: var(--text-muted);
+  --color-ink-inverse: var(--text-inverse);
+  --color-accent: var(--accent);
+
+  --color-hairline: var(--border-hairline);
+  --color-strong: var(--border-strong);
+
+  --color-ok: var(--status-ok);
+  --color-warn: var(--status-warn);
+  --color-error: var(--status-error);
+  --color-idle: var(--status-idle);
+
+  /* ── Equipment identity. One colour per appliance, used by the cook mode. ── */
+  --color-eq-thermomix: var(--graphite-900);
+  --color-eq-air-fryer: var(--rouge-signal);
+  --color-eq-oven: #1b6be0;
+  --color-eq-stovetop: #1e8c4a;
+  --color-eq-microwave: var(--voltage-violet);
+  --color-eq-none: var(--steel-500);
+
+  /* ── Type ─────────────────────────────────────────────────────────────── */
+  --font-display: var(--font-display);
+  --font-sans: var(--font-body);
+  --font-mono: var(--font-mono);
+
+  --text-label: var(--size-label);
+  --text-label--line-height: var(--leading-label);
+  --text-label--letter-spacing: var(--tracking-label);
+  --text-small: var(--size-small);
+  --text-small--line-height: var(--leading-small);
+  --text-body: var(--size-body);
+  --text-body--line-height: var(--leading-body);
+  --text-body-l: var(--size-body-l);
+  --text-body-l--line-height: var(--leading-body-l);
+  --text-heading: var(--size-heading);
+  --text-heading--line-height: var(--leading-heading);
+  --text-heading--letter-spacing: var(--tracking-heading);
+  --text-title: var(--size-title);
+  --text-title--line-height: var(--leading-title);
+  --text-title--letter-spacing: var(--tracking-title);
+  --text-display-s: var(--size-display-s);
+  --text-display-s--line-height: var(--leading-display-s);
+  --text-display-s--letter-spacing: var(--tracking-display-s);
+  --text-display-m: var(--size-display-m);
+  --text-display-m--line-height: var(--leading-display-m);
+  --text-display-m--letter-spacing: var(--tracking-display-m);
+
+  /* ── Radii / shadows / motion ─────────────────────────────────────────── */
+  --radius-xs: var(--radius-xs);
+  --radius-sm: var(--radius-sm);
+  --radius-md: var(--radius-md);
+  --radius-lg: var(--radius-lg);
+  --radius-xl: var(--radius-xl);
+  --radius-pill: var(--radius-pill);
+
+  --shadow-card: var(--shadow-card);
+  --shadow-raised: var(--shadow-raised);
+  --shadow-overlay: var(--shadow-overlay);
+
+  --ease-signal: var(--ease-signal);
+  --ease-exit: var(--ease-exit);
+
+  --container-app: var(--app-max-width);
+}
+
+/* ---------------------------------------------------------------------------
+   Base layer
+--------------------------------------------------------------------------- */
+@layer base {
+  html {
+    -webkit-text-size-adjust: 100%;
+    /* Kill the 300 ms tap delay and rubber-band scroll inside the app shell. */
+    touch-action: manipulation;
+  }
+
+  body {
+    margin: 0;
+    background: var(--bg-base);
+    color: var(--text-primary);
+    font-family: var(--font-body);
+    font-size: var(--size-body);
+    line-height: var(--leading-body);
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+    overscroll-behavior-y: none;
+  }
+
+  h1,
+  h2,
+  h3 {
+    font-family: var(--font-display);
+    font-weight: var(--weight-display);
+    margin: 0;
+  }
+
+  p {
+    margin: 0;
+    text-wrap: pretty;
+  }
+
+  button,
+  input,
+  textarea,
+  select {
+    font-family: inherit;
+  }
+
+  input::placeholder,
+  textarea::placeholder {
+    color: var(--steel-600);
+  }
+
+  ::selection {
+    background: var(--rouge-signal);
+    color: var(--porcelain-100);
+  }
+
+  :focus-visible {
+    outline: none;
+    box-shadow: var(--focus-ring);
+  }
+
+  /* The cook screen is scrolled with wet hands; hide the bar, keep the scroll. */
+  .no-scrollbar {
+    scrollbar-width: none;
+  }
+  .no-scrollbar::-webkit-scrollbar {
+    width: 0;
+    height: 0;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
+}
+
+/* ---------------------------------------------------------------------------
+   App utilities
+--------------------------------------------------------------------------- */
+@utility data-label {
+  font-family: var(--font-mono);
+  font-size: var(--size-label);
+  line-height: var(--leading-label);
+  letter-spacing: var(--tracking-label);
+  text-transform: uppercase;
+}
+
+@utility safe-bottom {
+  padding-bottom: max(env(safe-area-inset-bottom), 0px);
+}
+
+@utility safe-top {
+  padding-top: max(env(safe-area-inset-top), 0px);
+}
+
+@keyframes mpc-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes mpc-fade {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@utility animate-in {
+  animation: mpc-in var(--duration-base) var(--ease-signal) both;
+}
+
+@utility animate-fade {
+  animation: mpc-fade var(--duration-base) var(--ease-signal) both;
+}

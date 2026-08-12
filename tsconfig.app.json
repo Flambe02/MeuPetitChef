@@ -1,0 +1,40 @@
+{
+  "compilerOptions": {
+    "tsBuildInfoFile": "./node_modules/.tmp/tsconfig.app.tsbuildinfo",
+    "target": "ES2022",
+    "lib": ["ES2023", "DOM", "DOM.Iterable", "WebWorker"],
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "moduleDetection": "force",
+    "jsx": "react-jsx",
+    "useDefineForClassFields": true,
+
+    /* Strictness — the whole point of using TypeScript here. */
+    "strict": true,
+    "noUncheckedIndexedAccess": true,
+    // `exactOptionalPropertyTypes` is deliberately off: supabase-js declares its
+    // option bags as `key?: T` (not `key?: T | undefined`), so passing an
+    // explicit `undefined` — which is how optional filters are expressed — would
+    // be a type error at nearly every repository call.
+    "noImplicitOverride": true,
+    "noFallthroughCasesInSwitch": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "verbatimModuleSyntax": true,
+
+    /* Bundler-driven build: Vite emits, tsc only checks. */
+    "noEmit": true,
+    "isolatedModules": true,
+    "allowImportingTsExtensions": true,
+    "resolveJsonModule": true,
+    "skipLibCheck": true,
+
+    "types": ["vite/client", "vite-plugin-pwa/react", "@testing-library/jest-dom"],
+
+    // No `baseUrl` — deprecated in TS 6. Relative `paths` resolve against this file.
+    "paths": {
+      "@/*": ["./src/*"]
+    }
+  },
+  "include": ["src"]
+}

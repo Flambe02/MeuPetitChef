@@ -1,0 +1,148 @@
+<!doctype html>
+<!--
+  Fixture SYNTHÉTIQUE : ce que donne une page Cookidoo enregistrée par un
+  utilisateur abonné, depuis son propre navigateur (mode 2 de l'importateur).
+
+  À la différence de `public-recipe.html`, ce fichier n'est PAS un extrait
+  d'une page réelle : les étapes de préparation sont derrière l'abonnement et
+  n'ont donc pas pu être observées. Le balisage suit la convention que le reste
+  du site utilise (`<recipe-ingredient>`, `#ingredients-section`) appliquée à la
+  section préparation, et l'importateur essaie plusieurs sélecteurs de repli.
+
+  Les textes sont en pt-BR pour couvrir le vocabulaire brésilien du Thermomix
+  (vel., colher, modo espiga, sentido inverso, Varoma).
+-->
+<html lang="pt-BR">
+  <head>
+    <meta charset="utf-8" />
+    <title>Pão de queijo mineiro</title>
+    <script type="application/ld+json">
+      {
+        "@context": "http://schema.org/",
+        "@type": "Recipe",
+        "name": "Pão de queijo mineiro",
+        "image": "https://assets.tmecosys.com/image/upload/pao-de-queijo.jpg",
+        "totalTime": "PT45M",
+        "prepTime": "PT15M",
+        "recipeYield": "20 unidades",
+        "recipeCategory": ["Salgados"],
+        "inLanguage": "pt-BR",
+        "recipeIngredient": [
+          "250 g de polvilho azedo",
+          "120 g de leite",
+          "60 g de óleo",
+          "100 g de queijo minas meia cura em cubos",
+          "2 ovos",
+          "1 colher de chá de sal"
+        ],
+        "nutrition": {
+          "@type": "NutritionInformation",
+          "calories": "612 kJ / 146 kcal",
+          "proteinContent": "4.2 g",
+          "carbohydrateContent": "18 g",
+          "fatContent": "6.4 g"
+        }
+      }
+    </script>
+  </head>
+  <body>
+    <recipe-details id="main-content">
+      <div id="ingredients-section" class="recipe-content__section">
+        <h4 class="recipe-content__title">Ingredientes</h4>
+        <ul class="ul--clean">
+          <li>
+            <recipe-ingredient>
+              <div class="recipe-ingredient__content">
+                <span class="recipe-ingredient__name"> polvilho azedo </span>
+              </div>
+              <span class="recipe-ingredient__amount"> 250 g </span>
+            </recipe-ingredient>
+          </li>
+          <li>
+            <recipe-ingredient>
+              <div class="recipe-ingredient__content">
+                <span class="recipe-ingredient__name"> queijo minas meia cura em cubos </span>
+              </div>
+              <span class="recipe-ingredient__amount"> 100 g </span>
+              <span class="recipe-ingredient__alternative"> 100 g de queijo canastra </span>
+            </recipe-ingredient>
+          </li>
+          <li>
+            <recipe-ingredient>
+              <div class="recipe-ingredient__content">
+                <span class="recipe-ingredient__name"> leite </span>
+              </div>
+              <span class="recipe-ingredient__amount"> 120 g </span>
+            </recipe-ingredient>
+          </li>
+          <li>
+            <recipe-ingredient>
+              <div class="recipe-ingredient__content">
+                <span class="recipe-ingredient__name"> óleo </span>
+              </div>
+              <span class="recipe-ingredient__amount"> 60 g </span>
+            </recipe-ingredient>
+          </li>
+          <li>
+            <recipe-ingredient>
+              <div class="recipe-ingredient__content">
+                <span class="recipe-ingredient__name"> ovos </span>
+              </div>
+              <span class="recipe-ingredient__amount"> 2 </span>
+            </recipe-ingredient>
+          </li>
+          <li>
+            <recipe-ingredient>
+              <div class="recipe-ingredient__content">
+                <span class="recipe-ingredient__name"> sal </span>
+              </div>
+              <span class="recipe-ingredient__amount"> 1 colher de chá </span>
+            </recipe-ingredient>
+          </li>
+        </ul>
+      </div>
+
+      <div id="preparation-section" class="recipe-content__section">
+        <h4 class="recipe-content__title">Preparo</h4>
+        <ol class="ul--clean">
+          <li>
+            <recipe-step>
+              Coloque o queijo no copo e triture 5 seg/vel. 7. Reserve.
+            </recipe-step>
+          </li>
+          <li>
+            <recipe-step> Adicione o leite e o óleo e aqueça 5 min/90°C/vel. 2. </recipe-step>
+          </li>
+          <li>
+            <recipe-step> Junte o polvilho e misture 3 min/modo espiga. </recipe-step>
+          </li>
+          <li>
+            <recipe-step>
+              Cozinhe 15 min/Varoma/sentido inverso/vel. colher, sem o copo medidor.
+            </recipe-step>
+          </li>
+          <li>
+            <recipe-step> Modele as bolinhas e asse no forno por 25 min a 200°C. </recipe-step>
+          </li>
+        </ol>
+      </div>
+
+      <div id="difficulty-section" class="recipe-content__section">
+        <rdp-difficulty><p>fácil</p></rdp-difficulty>
+      </div>
+
+      <div id="nutrition-section" class="recipe-content__section">
+        <rdp-nutritious>
+          <div class="rdp-nutritious__item">
+            <span class="rdp-nutritious__name">Calorias</span>
+            <span class="rdp-nutritious__value"> 612 kJ / 146 kcal </span>
+          </div>
+          <div class="rdp-nutritious__item">
+            <span class="rdp-nutritious__name">Proteínas</span>
+            <span class="rdp-nutritious__value"> 4.2 g </span>
+          </div>
+        </rdp-nutritious>
+      </div>
+    </recipe-details>
+  </body>
+</html>

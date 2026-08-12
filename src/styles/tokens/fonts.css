@@ -1,0 +1,39 @@
+/* Signal Noir webfonts — the three families named in the brand brief. No substitutions.
+   General Sans (display) is served by Fontshare, the foundry CDN.
+   Inter (body) and JetBrains Mono (data labels) come from Google Fonts.
+   Both hosts are cached hard by the service worker (see vite.config.ts). */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;700&display=swap');
+
+@font-face {
+  font-family: 'General Sans';
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+  src:
+    url('https://cdn.fontshare.com/wf/3RZHWSNONLLWJK3RLPEKUZOMM56GO4LJ/BPDRY7AHVI3MCDXXVXTQQ76H3UXA63S3/SB2OEB6IKZPRR6JT4GFJ2TFT6HBB6AZN.woff2')
+      format('woff2'),
+    url('https://cdn.fontshare.com/wf/3RZHWSNONLLWJK3RLPEKUZOMM56GO4LJ/BPDRY7AHVI3MCDXXVXTQQ76H3UXA63S3/SB2OEB6IKZPRR6JT4GFJ2TFT6HBB6AZN.woff')
+      format('woff');
+}
+@font-face {
+  font-family: 'General Sans';
+  font-weight: 600;
+  font-style: normal;
+  font-display: swap;
+  src:
+    url('https://cdn.fontshare.com/wf/K46YRH762FH3QJ25IQM3VAXAKCHEXXW4/ISLWQPUZHZF33LRIOTBMFOJL57GBGQ4B/3ZLMEXZEQPLTEPMHTQDAUXP5ZZXCZAEN.woff2')
+      format('woff2'),
+    url('https://cdn.fontshare.com/wf/K46YRH762FH3QJ25IQM3VAXAKCHEXXW4/ISLWQPUZHZF33LRIOTBMFOJL57GBGQ4B/3ZLMEXZEQPLTEPMHTQDAUXP5ZZXCZAEN.woff')
+      format('woff');
+}
+@font-face {
+  font-family: 'General Sans';
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+  src:
+    url('https://cdn.fontshare.com/wf/KWXO5X3YW4X7OLUMPO4X24HQJGJU7E2Q/VOWUQZS3YLP66ZHPTXAFSH6YACY4WJHT/NIQ54PVBBIWVK3PFSOIOUJSXIJ5WTNDP.woff2')
+      format('woff2'),
+    url('https://cdn.fontshare.com/wf/KWXO5X3YW4X7OLUMPO4X24HQJGJU7E2Q/VOWUQZS3YLP66ZHPTXAFSH6YACY4WJHT/NIQ54PVBBIWVK3PFSOIOUJSXIJ5WTNDP.woff')
+      format('woff');
+}
