@@ -305,3 +305,7 @@ Deno.serve(async (request: Request): Promise<Response> => {
 
   return json({ adapted, model: MODEL });
 });
+
+// Deno loads every file as a module; saying so lets one `tsc` pass check all
+// three functions without them colliding in a shared global scope.
+export {};

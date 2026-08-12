@@ -1,0 +1,16 @@
+{
+  "// note": "Separate from the app's tsconfig on purpose: these files run on Deno, not in the browser, and are deployed from source with no build step. See deno.d.ts.",
+  "compilerOptions": {
+    "target": "es2022",
+    "lib": ["es2022", "dom"],
+    "module": "esnext",
+    "moduleResolution": "bundler",
+    "strict": true,
+    "noEmit": true,
+    "skipLibCheck": true,
+    "isolatedModules": true,
+    "verbatimModuleSyntax": true,
+    "types": []
+  },
+  "include": ["**/*.ts"]
+}

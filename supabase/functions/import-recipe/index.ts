@@ -452,11 +452,14 @@ async function extractRecipe(content: UserContent, openaiKey: string): Promise<E
   }
 
   const payload = (await upstream.json()) as { choices?: { message?: { content?: string } }[] };
-  const content = payload.choices?.[0]?.message?.content;
-  if (!content) throw new HttpError(502, 'Resposta vazia ao ler a receita.');
+  // Not `content`: that is the parameter above, and a `const` of the same name
+  // in the same scope is a parse error — the function then fails to boot at all
+  // rather than at this line.
+  const answer = payload.choices?.[0]?.message?.content;
+  if (!answer) throw new HttpError(502, 'Resposta vazia ao ler a receita.');
 
   try {
-    return JSON.parse(content) as Extraction;
+    return JSON.parse(answer) as Extraction;
   } catch {
     throw new HttpError(502, 'A leitura da receita voltou num formato inesperado.');
   }
@@ -696,3 +699,7 @@ Deno.serve(async (request: Request): Promise<Response> => {
     return json({ error: 'Não consegui buscar essa receita agora.' }, 502);
   }
 });
+
+// Deno loads every file as a module; saying so lets one `tsc` pass check all
+// three functions without them colliding in a shared global scope.
+export {};
