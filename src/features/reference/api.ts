@@ -135,7 +135,15 @@ export async function createVersionFromImport(
     );
   }
 
-  const saved = await saveGeneratedDraft(userId, generated, input.mode);
+  // The post's own photo travels with the recipe, linked. It is the picture of
+  // the dish this recipe is *for*, and re-hosting it is exactly what we do not
+  // want to do.
+  const saved = await saveGeneratedDraft(
+    userId,
+    generated,
+    input.mode,
+    input.outcome.recipe.source.imageUrl,
+  );
 
   // Straight into the book. A recipe the chef wrote for you, that you asked to
   // cook, is yours — leaving it addressable only by the URL you were just

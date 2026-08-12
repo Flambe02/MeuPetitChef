@@ -1,9 +1,24 @@
-import { useQuery } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
 import type { ChefMode } from '@/domain/types';
 import { keys, type RecipeSearchParams } from '@/lib/query/keys';
 
-import { getRecipeDetail, getSuggestions, searchRecipes } from './api';
+import { getRecipeDetail, getSuggestions, searchRecipes, setRecipePhoto } from './api';
+
+/**
+ * Links a photo to a recipe, or clears it with an empty string.
+ *
+ * Invalidates the whole recipe namespace rather than one detail key: the same
+ * picture is the thumbnail on the home screen, in search, and in the book.
+ */
+export function useSetRecipePhoto() {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: ({ recipeId, photoUrl }: { recipeId: string; photoUrl: string }) =>
+      setRecipePhoto(recipeId, photoUrl),
+    onSuccess: () => client.invalidateQueries({ queryKey: keys.recipes.all }),
+  });
+}
 
 export function useRecipeSearch(params: RecipeSearchParams = {}) {
   return useQuery({

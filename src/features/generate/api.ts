@@ -122,6 +122,13 @@ export async function saveGeneratedDraft(
   userId: string,
   recipe: GeneratedRecipe,
   mode: ChefMode,
+  /**
+   * A photo to link, when the recipe came from somewhere that had one. Not
+   * downloaded and not re-hosted — see migration 16. A post's `og:image` is
+   * exactly this, and it is the difference between a recipe with a picture and
+   * a grey rectangle.
+   */
+  photoUrl: string | null = null,
 ): Promise<{ id: string; slug: string }> {
   const slug = slugify(recipe.title);
 
@@ -133,6 +140,7 @@ export async function saveGeneratedDraft(
         title: recipe.title,
         subtitle: recipe.subtitle,
         description: recipe.description,
+        photo_url: photoUrl,
         author_name: 'Seu chef',
         difficulty: recipe.difficulty,
         total_minutes: Math.max(1, recipe.total_minutes),

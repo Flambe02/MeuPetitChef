@@ -37,7 +37,10 @@ export function scaleQuantity(
 
 /** Formats a number the Brazilian way: comma decimal, no trailing zeros. */
 export function formatQuantity(quantity: number | null): string {
-  if (quantity === null) return '';
+  // Zero is not a quantity, it is the absence of one — and it reaches here
+  // often, because "sal a gosto" is stored as 0 with the unit carrying the
+  // whole meaning. Printed, it read "0 a gosto".
+  if (quantity === null || quantity === 0) return '';
   const rounded = Math.round(quantity * 100) / 100;
   return String(rounded).replace('.', ',');
 }

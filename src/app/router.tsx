@@ -28,7 +28,6 @@ const shellChildren: RouteObject[] = [
   { path: routes.pantry, element: load(() => import('@/app/screens/PantryScreen')) },
 
   { path: routes.recipe(), element: load(() => import('@/app/screens/RecipeScreen')) },
-  { path: routes.recipeSpread(), element: load(() => import('@/app/screens/RecipeSpreadScreen')) },
 
   { path: routes.plan, element: load(() => import('@/app/screens/PlanScreen')) },
   { path: routes.shopping, element: load(() => import('@/app/screens/ShoppingScreen')) },
@@ -66,6 +65,14 @@ export const router = createBrowserRouter(
                 // would sit on top of, and neither is a place to wander off from.
                 { path: routes.cook(), element: load(() => import('@/app/screens/CookScreen')) },
                 { path: routes.prep(), element: load(() => import('@/app/screens/PrepScreen')) },
+                // The ficha joins them: it is the book page, full bleed, with
+                // its own "Fechar o livro" — a tab bar would sit on top of the
+                // pinned actions and offer a second way out of a screen that
+                // already has one.
+                {
+                  path: routes.recipeSpread(),
+                  element: load(() => import('@/app/screens/RecipeSpreadScreen')),
+                },
                 { element: <AppShell />, children: shellChildren },
               ],
             },

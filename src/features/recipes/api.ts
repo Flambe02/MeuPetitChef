@@ -46,6 +46,18 @@ function toVariants(raw: unknown): Partial<Record<ChefMode, VariantNutrition>> {
   return out;
 }
 
+/**
+ * The picture to draw, in order of who put it there.
+ *
+ * A linked photo wins because it is the deliberate one: somebody pasted that
+ * address for this recipe. `hero_image_path` is the catalogue's own bucket and
+ * stays the fallback, which also means every screen that already renders
+ * `heroImageUrl` shows linked photos without a line of change.
+ */
+export function pickPhoto(photoUrl: string | null, heroPath: string | null): string | null {
+  return photoUrl ?? storageUrl('recipe-images', heroPath);
+}
+
 export function mapRecipeCard(row: RecipeCardRow): RecipeCard {
   return {
     id: row.id ?? '',
@@ -53,7 +65,7 @@ export function mapRecipeCard(row: RecipeCardRow): RecipeCard {
     title: row.title ?? 'Receita sem título',
     subtitle: row.subtitle,
     heroImagePath: row.hero_image_path,
-    heroImageUrl: storageUrl('recipe-images', row.hero_image_path),
+    heroImageUrl: pickPhoto(row.photo_url ?? null, row.hero_image_path),
     authorName: row.author_name ?? 'Petit Chef',
     cuisine: row.cuisine,
     category: row.category,
@@ -67,6 +79,27 @@ export function mapRecipeCard(row: RecipeCardRow): RecipeCard {
     tags: row.tags ?? [],
     variants: toVariants(row.variants),
   };
+}
+
+/**
+ * Points a recipe at a photo that already exists on the web.
+ *
+ * Linked, never downloaded: no upload, no bucket, no storage policy, and the
+ * picture stays where its author put it. The trade is real and accepted — a
+ * link can rot — which is why this is offered on your own drafts and the
+ * published catalogue keeps using our own bucket.
+ *
+ * An empty string clears it, so the same call removes a photo that went stale.
+ */
+export async function setRecipePhoto(recipeId: string, photoUrl: string): Promise<void> {
+  const trimmed = photoUrl.trim();
+  unwrap(
+    await supabase
+      .from('recipes')
+      .update({ photo_url: trimmed === '' ? null : trimmed })
+      .eq('id', recipeId)
+      .select('id'),
+  );
 }
 
 /* ---------------------------------------------------------------------------
@@ -93,7 +126,7 @@ export async function searchRecipes(params: RecipeSearchParams = {}): Promise<Re
 /* The shape of the single nested select that builds a recipe detail. Written
    once as a constant so the query and its types cannot drift apart. */
 const DETAIL_SELECT = `
-  id, slug, title, subtitle, description, hero_image_path, author_name, cuisine, category,
+  id, slug, title, subtitle, description, hero_image_path, photo_url, author_name, cuisine, category,
   difficulty, total_minutes, active_minutes, default_servings, rating_avg, rating_count, status,
   recipe_variants ( id, mode, kcal, protein_g, carbs_g, fat_g, fiber_g, summary, changes ),
   recipe_ingredient_groups ( id, name, position ),
@@ -300,7 +333,7 @@ export async function getRecipeDetail(
     description: row.description,
     status: row.status,
     heroImagePath: row.hero_image_path,
-    heroImageUrl: storageUrl('recipe-images', row.hero_image_path),
+    heroImageUrl: pickPhoto(row.photo_url, row.hero_image_path),
     authorName: row.author_name,
     cuisine: row.cuisine,
     category: row.category,

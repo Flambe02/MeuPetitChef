@@ -1,4 +1,4 @@
-import { Check } from 'lucide-react';
+import { BookOpen, Check, ImagePlus } from 'lucide-react';
 import { useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router';
 
@@ -11,7 +11,7 @@ import { EQUIPMENT_THEME, equipmentLabel, visibleEquipment } from '@/domain/equi
 import { formatAmount, scaleLine, servingFactor } from '@/domain/scaling';
 import type { ChefMode } from '@/domain/types';
 import { useProfile } from '@/features/profile/hooks';
-import { useRecipe } from '@/features/recipes/hooks';
+import { useRecipe, useSetRecipePhoto } from '@/features/recipes/hooks';
 import { useAddRecipeToList } from '@/features/shopping/hooks';
 import { cn } from '@/lib/cn';
 import { formatDuration, formatGrams, formatKcal } from '@/lib/format';
@@ -45,8 +45,11 @@ export default function RecipeScreen() {
   const [tab, setTab] = useState<Tab>('steps');
   const [showModes, setShowModes] = useState(false);
   const [checked, setChecked] = useState<string[]>([]);
+  const [editingPhoto, setEditingPhoto] = useState(false);
+  const [photoUrl, setPhotoUrl] = useState('');
 
   const recipe = useRecipe(slug, activeMode);
+  const setPhoto = useSetRecipePhoto();
   const addToList = useAddRecipeToList();
 
   if (recipe.isPending) return <Spinner label="Carregando a receita…" />;
@@ -93,6 +96,21 @@ export default function RecipeScreen() {
           {data.heroImageUrl ? (
             <img src={data.heroImageUrl} alt="" className="size-full object-cover" />
           ) : null}
+
+          {/* Your own draft, so your own photo. Offered here rather than in a
+              settings screen because this is where you notice it is missing.
+              The picture is linked, never uploaded — see migration 16. */}
+          {data.status === 'draft' ? (
+            <button
+              type="button"
+              onClick={() => setEditingPhoto((open) => !open)}
+              className="absolute right-4 bottom-3 flex h-9 items-center gap-2 rounded-pill border border-hairline bg-raised/90 px-3 text-small font-semibold text-ink backdrop-blur"
+            >
+              <ImagePlus aria-hidden className="size-4" />
+              {data.heroImageUrl ? 'Trocar a foto' : 'Adicionar foto'}
+            </button>
+          ) : null}
+
           <div className="absolute inset-x-4 top-3 flex justify-between">
             <button
               type="button"
@@ -105,6 +123,51 @@ export default function RecipeScreen() {
             <FavoriteButton recipe={data} />
           </div>
         </div>
+
+        {editingPhoto ? (
+          <div className="border-b border-hairline bg-raised px-5 py-4">
+            <label className="block text-small text-ink-muted" htmlFor="photo-url">
+              Link da foto
+            </label>
+            <input
+              id="photo-url"
+              type="url"
+              inputMode="url"
+              value={photoUrl}
+              onChange={(event) => setPhotoUrl(event.target.value)}
+              placeholder="https://…/foto.jpg"
+              className="mt-1 h-11 w-full rounded-lg border border-hairline bg-transparent px-3 text-body text-ink outline-none placeholder:text-ink-muted"
+            />
+            <p className="mt-2 text-small text-ink-muted">
+              A foto continua onde está — guardamos só o endereço. Deixe em branco para remover.
+            </p>
+            <div className="mt-3 flex gap-2">
+              <button
+                type="button"
+                disabled={setPhoto.isPending}
+                onClick={() =>
+                  setPhoto.mutate(
+                    { recipeId: data.id, photoUrl },
+                    { onSuccess: () => setEditingPhoto(false) },
+                  )
+                }
+                className="h-[42px] rounded-lg bg-graphite-900 px-4 text-[14px] font-semibold text-porcelain-100 disabled:opacity-45"
+              >
+                {setPhoto.isPending ? 'Salvando…' : 'Salvar'}
+              </button>
+              <button
+                type="button"
+                onClick={() => setEditingPhoto(false)}
+                className="h-[42px] rounded-lg border border-strong px-4 text-[14px] font-semibold text-ink"
+              >
+                Cancelar
+              </button>
+            </div>
+            {setPhoto.isError ? (
+              <p className="mt-2 text-small text-rouge">{setPhoto.error.message}</p>
+            ) : null}
+          </div>
+        ) : null}
 
         <div className="px-5 pb-6">
           <DataLabel tone="signal" className="mt-5">
@@ -458,16 +521,28 @@ export default function RecipeScreen() {
           Sticky above the tab bar rather than `fixed`: as a fixed bar it
           overlapped the last 31px of the sheet, measured. */}
       <div className="sticky bottom-[var(--tabbar-height)] z-10 flex-none border-t border-hairline bg-base px-5 pt-3 pb-5">
-        <Link
-          to={
-            activePath
-              ? `${routes.prep(data.slug)}?path=${encodeURIComponent(activePath.slug)}`
-              : routes.prep(data.slug)
-          }
-          className="flex h-[50px] w-full items-center justify-center rounded-lg bg-graphite-900 text-body font-semibold text-porcelain-100 no-underline"
-        >
-          Vamos cozinhar
-        </Link>
+        <div className="flex items-center gap-2">
+          {/* The book page, next to the cook button rather than buried in a
+              tab: it is the other way of reading this recipe, and the one you
+              want when the phone is going on the counter. */}
+          <Link
+            to={routes.recipeSpread(data.slug)}
+            aria-label="Abrir a ficha"
+            className="flex size-[50px] flex-none items-center justify-center rounded-lg border border-strong text-ink no-underline"
+          >
+            <BookOpen aria-hidden className="size-5" />
+          </Link>
+          <Link
+            to={
+              activePath
+                ? `${routes.prep(data.slug)}?path=${encodeURIComponent(activePath.slug)}`
+                : routes.prep(data.slug)
+            }
+            className="flex h-[50px] flex-1 items-center justify-center rounded-lg bg-graphite-900 text-body font-semibold text-porcelain-100 no-underline"
+          >
+            Vamos cozinhar
+          </Link>
+        </div>
         {activePath ? (
           <DataLabel className="mt-2.5 flex w-full justify-center">{activePath.name}</DataLabel>
         ) : null}

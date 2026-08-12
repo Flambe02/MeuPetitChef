@@ -1592,6 +1592,7 @@ export type Database = {
           source_url: string | null;
           source_image_url: string | null;
           imported_at: string | null;
+          photo_url: string | null;
         };
         Insert: {
           id?: string;
@@ -1619,6 +1620,7 @@ export type Database = {
           source_url?: string | null;
           source_image_url?: string | null;
           imported_at?: string | null;
+          photo_url?: string | null;
         };
         Update: {
           id?: string;
@@ -1646,6 +1648,7 @@ export type Database = {
           source_url?: string | null;
           source_image_url?: string | null;
           imported_at?: string | null;
+          photo_url?: string | null;
         };
         Relationships: [
           {
@@ -1809,6 +1812,7 @@ export type Database = {
           equipment: Database["public"]["Enums"]["equipment_type"][] | null;
           tags: string[] | null;
           variants: Json | null;
+          photo_url: string | null;
         };
         Relationships: [];
       };
