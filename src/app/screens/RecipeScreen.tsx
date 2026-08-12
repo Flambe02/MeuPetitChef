@@ -94,7 +94,17 @@ export default function RecipeScreen() {
         {/* ── Hero ───────────────────────────────────────────────────── */}
         <div className="relative h-[230px] bg-inset">
           {data.heroImageUrl ? (
-            <img src={data.heroImageUrl} alt="" className="size-full object-cover" />
+            // A linked photo can rot — that is the trade migration 16 makes.
+            // When it does, fall back to the empty frame rather than to the
+            // browser's broken-image glyph, which looks like our bug.
+            <img
+              src={data.heroImageUrl}
+              alt=""
+              className="size-full object-cover"
+              onError={(event) => {
+                event.currentTarget.style.display = 'none';
+              }}
+            />
           ) : null}
 
           {/* Your own draft, so your own photo. Offered here rather than in a
