@@ -245,18 +245,41 @@ function decodeEntities(value: string): string {
 }
 
 /**
+ * Instagram's own furniture, removed from around the caption.
+ *
+ * What the tag actually contains is
+ * `6 likes, 0 comments - fulano no March 14, 2024: "<the caption>"`, and the
+ * model reads that preamble as the beginning of the text: on a real post it
+ * answered "no title" for a caption whose first line names the dish, because
+ * the first line it saw was an engagement count. Reach counts are not part of
+ * the recipe.
+ */
+function stripSocialChrome(text: string): string {
+  let out = text.trim();
+  // "6 likes, 0 comments - user no March 14, 2024: " — the wording is localised,
+  // the shape is not. Bounded so a caption that merely mentions likes survives.
+  out = out.replace(/^[\d.,\s]*\b(?:likes?|curtidas?|me gusta|j'aime)\b[^:]{0,160}:\s*/iu, '');
+  // "Fulano no Instagram: " — the same, on og:title.
+  out = out.replace(/^[\w.]{2,40}\s+(?:no|on|em|sur)\s+(?:Instagram|Facebook)\s*:\s*/iu, '');
+  const quoted = /^"([\s\S]*)"\.?$/.exec(out);
+  if (quoted?.[1] !== undefined) out = quoted[1];
+  // og:title arrives truncated mid-caption, so its closing quote never comes.
+  return out.replace(/^"/, '').trim();
+}
+
+/**
  * The caption, from the meta tags a public post still serves.
  *
- * `og:description` is the caption itself on both networks. It is also the only
- * field that survives when the page body is a React shell, which it always is.
+ * `og:description` is the caption itself on both networks, and the only field
+ * that survives the page body being a React shell — which it always is.
+ * `og:title` is the same text truncated, so it is a fallback and never an
+ * addition: joining both fed the model the opening lines twice.
  */
 function readCaption(html: string): string | null {
-  const parts = [
-    metaContent(html, 'og:title'),
-    metaContent(html, 'og:description') ?? metaContent(html, 'description'),
-  ].filter((part): part is string => Boolean(part && part.length > 0));
+  const description = metaContent(html, 'og:description') ?? metaContent(html, 'description');
+  const caption =
+    stripSocialChrome(description ?? '') || stripSocialChrome(metaContent(html, 'og:title') ?? '');
 
-  const caption = parts.join('\n\n').trim();
   if (caption.length < 40) return null;
   return caption.slice(0, MAX_CAPTION_CHARS);
 }
@@ -330,6 +353,13 @@ REGRA ABSOLUTA — nunca invente:
 - Se o texto não traz o modo de preparo, devolva "steps" vazio. NÃO deduza o
   preparo a partir dos ingredientes: quem vai cozinhar confia no que está aí.
 Uma receita incompleta é útil e honesta; uma receita inventada estraga o jantar.
+
+TÍTULO — sempre nomeie o prato. Quase nenhuma legenda traz um título separado:
+use o nome do prato como o autor o escreve na primeira linha, sem emoji, sem
+hashtag, sem o nome do perfil e sem contagem de curtidas. "Mon steak (🤫) et
+taboulé de chou fleur avec un œuf au plat 🤩" vira "Steak et taboulé de chou
+fleur avec un œuf au plat". "title" só é null quando "is_recipe" é false —
+uma receita sem nome não entra no aplicativo.
 
 NÃO TRADUZA. Mantenha exatamente o idioma do texto original, inclusive os nomes
 dos ingredientes. Em "language" devolva o idioma que você leu ("pt-BR", "fr-FR",
