@@ -2,7 +2,7 @@ import { lazy, Suspense, type ComponentType } from 'react';
 import { createBrowserRouter, type RouteObject } from 'react-router';
 
 import { routes } from '@/app/routes';
-import { RequireAuth, RequireOnboarding } from '@/app/guards';
+import { RequireAdmin, RequireAuth, RequireOnboarding } from '@/app/guards';
 import { AppShell } from '@/components/AppShell';
 import { RouteErrorBoundary } from '@/components/ErrorBoundary';
 import { Spinner } from '@/components/ui/states';
@@ -72,6 +72,31 @@ export const router = createBrowserRouter(
                 {
                   path: routes.recipeSpread(),
                   element: load(() => import('@/app/screens/RecipeSpreadScreen')),
+                },
+                // Back-office: its own back button, no tab bar to compete with
+                // a progress bar or a two-column review. Gated a second time by
+                // RequireAdmin — see that guard's own note on what it does and
+                // does not protect.
+                {
+                  element: <RequireAdmin />,
+                  children: [
+                    {
+                      path: routes.adminImports,
+                      element: load(() => import('@/app/screens/admin/ImportacoesScreen')),
+                    },
+                    {
+                      path: routes.adminNewMagazineImport,
+                      element: load(() => import('@/app/screens/admin/NewMagazineImportScreen')),
+                    },
+                    {
+                      path: routes.adminMagazineImport(),
+                      element: load(() => import('@/app/screens/admin/MagazineImportScreen')),
+                    },
+                    {
+                      path: routes.adminMagazineItem(),
+                      element: load(() => import('@/app/screens/admin/MagazineItemScreen')),
+                    },
+                  ],
                 },
                 { element: <AppShell />, children: shellChildren },
               ],

@@ -15,11 +15,7 @@
  * exercised by hand against a real PDF rather than by `npm test` — the same
  * boundary `fetch-source.ts` draws around the network calls it makes.
  */
-import {
-  getPageCount,
-  readAllPages,
-  renderPageToDataUrl,
-} from '@/lib/pdf/document';
+import { getPageCount, readAllPages, renderPageToDataUrl } from '@/lib/pdf/document';
 import type { PDFDocumentProxy } from 'pdfjs-dist';
 
 import { readFolio, detectFolioOffset } from '@/lib/magazine-import/folio';
@@ -128,7 +124,11 @@ async function ensurePagesRead(
   const existing = await listPages(client, importId);
   if (existing.length > 0) return existing;
 
-  await updateImport(client, importId, { status: 'processing', stage: 'reading_pages', started_at: now() });
+  await updateImport(client, importId, {
+    status: 'processing',
+    stage: 'reading_pages',
+    started_at: now(),
+  });
   await appendLog(client, importId, 'info', 'Lendo o texto de cada página do PDF.');
 
   const total = getPageCount(doc);
@@ -438,7 +438,14 @@ export async function runMagazineImport(
     checkAbort();
 
     const magazinePages = pageRows.map(rowToMagazinePage);
-    const index = await ensureIndexRead(client, doc, provider, magazineImport, userId, magazinePages);
+    const index = await ensureIndexRead(
+      client,
+      doc,
+      provider,
+      magazineImport,
+      userId,
+      magazinePages,
+    );
     hooks.onProgress?.();
     checkAbort();
 

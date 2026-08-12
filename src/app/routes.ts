@@ -38,6 +38,14 @@ export const routes = {
   more: '/mais',
   import: '/importar',
 
+  // Administration — admin-only, gated by RequireAdmin in the router and by
+  // is_admin() in every table and Edge Function these screens touch.
+  adminImports: '/administracao/importacoes',
+  adminNewMagazineImport: '/administracao/importacoes/nova',
+  adminMagazineImport: (id = ':id') => `/administracao/importacoes/${id}`,
+  adminMagazineItem: (id = ':id', itemId = ':itemId') =>
+    `/administracao/importacoes/${id}/receitas/${itemId}`,
+
   // Auth & onboarding
   onboarding: '/boas-vindas',
   signIn: '/entrar',

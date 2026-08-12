@@ -11,6 +11,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useSession } from '@/features/auth/session-context';
 import { keys } from '@/lib/query/keys';
 import { supabase } from '@/lib/supabase/client';
+import type { TablesUpdate } from '@/lib/supabase/database.types';
 import type { MagazineIdentity } from '@/lib/magazine-import/types';
 
 import {
@@ -29,6 +30,7 @@ import {
   syncImportStatus,
   totalCost,
   updateImport,
+  updateItem,
   uploadMagazine,
 } from './api';
 
@@ -48,7 +50,9 @@ export function useMagazineImport(importId: string | undefined) {
     // without the admin having to reload — and stops once there is nothing
     // left running, so an idle screen does not poll forever.
     refetchInterval: (query) =>
-      query.state.data && RUNNING_STATUSES.has(query.state.data.status) ? REFRESH_WHILE_RUNNING : false,
+      query.state.data && RUNNING_STATUSES.has(query.state.data.status)
+        ? REFRESH_WHILE_RUNNING
+        : false,
   });
 }
 
@@ -72,6 +76,22 @@ export function useMagazineImportItems(importId: string | undefined) {
     queryFn: () => listItems(supabase, importId!),
     enabled: Boolean(importId),
   });
+}
+
+/**
+ * Not backed by its own query key: reads through the same `items(importId)`
+ * cache `useMagazineImportItems` populates, so approving or editing a recipe
+ * on the review screen and going back to the list never shows two different
+ * answers about the same row.
+ */
+export function useMagazineImportItem(importId: string | undefined, itemId: string | undefined) {
+  const query = useQuery({
+    queryKey: keys.magazineImports.items(importId ?? ''),
+    queryFn: () => listItems(supabase, importId!),
+    enabled: Boolean(importId),
+  });
+  const item = query.data?.find((row) => row.id === itemId) ?? null;
+  return { ...query, data: item };
 }
 
 export function useMagazineImportLogs(importId: string | undefined) {
@@ -149,7 +169,8 @@ export function useUploadMagazine() {
 export function useUpdateMagazineIdentity(importId: string) {
   const client = useQueryClient();
   return useMutation({
-    mutationFn: (identity: MagazineIdentity) => updateImport(supabase, importId, identityPatch(identity)),
+    mutationFn: (identity: MagazineIdentity) =>
+      updateImport(supabase, importId, identityPatch(identity)),
     onSuccess: (updated) => {
       client.setQueryData(keys.magazineImports.detail(importId), updated);
     },
@@ -191,7 +212,9 @@ export function useRunMagazineImport() {
         await runMagazineImport(supabase, doc, openaiEdgeProvider, input.importId, userId, {
           signal: input.signal,
           onProgress: () => {
-            void client.invalidateQueries({ queryKey: keys.magazineImports.detail(input.importId) });
+            void client.invalidateQueries({
+              queryKey: keys.magazineImports.detail(input.importId),
+            });
             void client.invalidateQueries({ queryKey: keys.magazineImports.pages(input.importId) });
           },
         });
@@ -231,6 +254,18 @@ function invalidateAfterItemAction(client: ReturnType<typeof useQueryClient>, im
   // The recipe now exists (or the import's item count effectively changed),
   // and every recipe list the admin can see may now include it.
   void client.invalidateQueries({ queryKey: keys.recipes.all });
+}
+
+/** Saves a manual edit — §23's "corrija a extração" — to `transformed_data`. */
+export function useUpdateMagazineItem(importId: string) {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: (input: { itemId: string; patch: TablesUpdate<'magazine_import_items'> }) =>
+      updateItem(supabase, input.itemId, input.patch),
+    onSuccess: () => {
+      void client.invalidateQueries({ queryKey: keys.magazineImports.items(importId) });
+    },
+  });
 }
 
 export function useApproveItem(importId: string) {

@@ -1,10 +1,19 @@
-import { Activity, CircleUserRound, CookingPot, Heart, Link2, ShoppingBasket } from 'lucide-react';
+import {
+  Activity,
+  CircleUserRound,
+  CookingPot,
+  Heart,
+  Link2,
+  ShieldCheck,
+  ShoppingBasket,
+} from 'lucide-react';
 import type { ComponentType } from 'react';
 import { Link } from 'react-router';
 
 import { routes } from '@/app/routes';
 import { DataLabel } from '@/components/ui/Card';
 import { LanguageSwitcher } from '@/components/LanguageSwitcher';
+import { useIsAdmin } from '@/features/admin/hooks';
 import { useEquipment } from '@/features/profile/hooks';
 import { useFavorites } from '@/features/favorites/hooks';
 
@@ -29,6 +38,7 @@ interface Entry {
 export default function MoreScreen() {
   const favorites = useFavorites();
   const equipment = useEquipment();
+  const isAdmin = useIsAdmin();
 
   const groups: { name: string; items: Entry[] }[] = [
     {
@@ -79,6 +89,24 @@ export default function MoreScreen() {
         },
       ],
     },
+    // Only ever rendered for an admin, and even then only decoration: the
+    // real gate is RequireAdmin on the route and is_admin() everywhere behind
+    // it, not this conditional.
+    ...(isAdmin
+      ? [
+          {
+            name: 'Administração',
+            items: [
+              {
+                label: 'Importações',
+                desc: 'Trazer receitas de outras fontes para o catálogo',
+                icon: ShieldCheck,
+                to: routes.adminImports,
+              },
+            ],
+          },
+        ]
+      : []),
   ];
 
   return (

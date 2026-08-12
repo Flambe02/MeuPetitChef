@@ -417,20 +417,22 @@ export async function approveItem(
 export async function syncImportStatus(client: AppSupabaseClient, importId: string): Promise<void> {
   const items = await listItems(client, importId);
   if (items.length === 0) return;
-  const allResolved = items.every((item) => item.status === 'imported' || item.status === 'ignored');
+  const allResolved = items.every(
+    (item) => item.status === 'imported' || item.status === 'ignored',
+  );
   if (!allResolved) return;
 
-  await updateImport(client, importId, { status: 'completed', completed_at: new Date().toISOString() });
+  await updateImport(client, importId, {
+    status: 'completed',
+    completed_at: new Date().toISOString(),
+  });
 }
 
 /* ---------------------------------------------------------------------------
  * Provenance and transformation
  * ------------------------------------------------------------------------- */
 
-export function toProvenance(
-  magazineImport: MagazineImport,
-  folios: number[],
-): MagazineProvenance {
+export function toProvenance(magazineImport: MagazineImport, folios: number[]): MagazineProvenance {
   return {
     importId: magazineImport.id,
     publication: magazineImport.publication,
@@ -490,7 +492,14 @@ export async function recordAiUsage(
   client: AppSupabaseClient,
   userId: string,
   importId: string | null,
-  usage: { provider: string; model: string; operation: string; inputTokens: number; outputTokens: number; estimatedCostUsd: number },
+  usage: {
+    provider: string;
+    model: string;
+    operation: string;
+    inputTokens: number;
+    outputTokens: number;
+    estimatedCostUsd: number;
+  },
 ): Promise<void> {
   const { error } = await client.from('ai_usage_events').insert({
     created_by: userId,
@@ -507,7 +516,10 @@ export async function recordAiUsage(
 
 export async function totalCost(client: AppSupabaseClient, importId: string): Promise<number> {
   const rows = unwrap(
-    await client.from('ai_usage_events').select('estimated_cost_usd').eq('magazine_import_id', importId),
+    await client
+      .from('ai_usage_events')
+      .select('estimated_cost_usd')
+      .eq('magazine_import_id', importId),
   );
   return rows.reduce((sum, row) => sum + row.estimated_cost_usd, 0);
 }
