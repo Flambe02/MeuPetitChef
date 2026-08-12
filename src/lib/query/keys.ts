@@ -82,4 +82,19 @@ export const keys = {
     list: (userId: string) => [...keys.imports.all, 'list', userId] as const,
     detail: (id: string) => [...keys.imports.all, 'detail', id] as const,
   },
+
+  /**
+   * The magazine importer's back-office. Unscoped by user on purpose — RLS
+   * (migration 17) is `is_admin()`, not `created_by = auth.uid()`, because a
+   * second admin has to be able to pick up someone else's review.
+   */
+  magazineImports: {
+    all: ['magazineImports'] as const,
+    list: () => [...keys.magazineImports.all, 'list'] as const,
+    detail: (id: string) => [...keys.magazineImports.all, 'detail', id] as const,
+    pages: (id: string) => [...keys.magazineImports.all, 'pages', id] as const,
+    items: (id: string) => [...keys.magazineImports.all, 'items', id] as const,
+    logs: (id: string) => [...keys.magazineImports.all, 'logs', id] as const,
+    cost: (id: string) => [...keys.magazineImports.all, 'cost', id] as const,
+  },
 } as const;

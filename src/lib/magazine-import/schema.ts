@@ -133,11 +133,22 @@ const ingredientSchema = z.object({
 });
 
 const stepSchema = z.object({
+  // Read, but not trusted as the sole source of ordering — see the transform
+  // below. The model has occasionally numbered two steps "3", which a sort
+  // would then apply arbitrarily; the array's own position never has that
+  // problem.
   order: nullableNumber,
   instruction: requiredText,
 });
 
-export const magazineRecipeSchema = z.object({
+/**
+ * Parses the wire shape OpenAI actually returns (`confidence`, matching the
+ * JSON schema in `supabase/functions/magazine-vision/index.ts`) and reshapes
+ * it into `MagazineRecipe` (`reportedConfidence`, matching every other file in
+ * this folder). The rename happens once, here, so nothing downstream has to
+ * know the two names ever differed.
+ */
+const rawMagazineRecipeSchema = z.object({
   title: requiredText,
   description: nullableText,
   servings: nullableNumber,
@@ -156,6 +167,14 @@ export const magazineRecipeSchema = z.object({
   continuationAfter: z.unknown().transform((value) => value === true),
   confidence: confidenceSchema,
 });
+
+export const magazineRecipeSchema = rawMagazineRecipeSchema.transform(
+  ({ confidence, steps, ...rest }) => ({
+    ...rest,
+    steps: steps.map((step, index) => ({ order: index + 1, instruction: step.instruction })),
+    reportedConfidence: confidence,
+  }),
+);
 
 export const extractionSchema = z.object({
   recipes: z.array(magazineRecipeSchema).default([]),

@@ -10,6 +10,9 @@
     "skipLibCheck": true,
     "isolatedModules": true,
     "verbatimModuleSyntax": true,
+    // Deno resolves imports exactly as written, with no bundler to fill in an
+    // extension — so a local import must say `./prompts.ts`, not `./prompts`.
+    "allowImportingTsExtensions": true,
     "types": []
   },
   "include": ["**/*.ts"]

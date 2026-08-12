@@ -2,6 +2,7 @@ import { Navigate, Outlet, useLocation } from 'react-router';
 
 import { routes } from '@/app/routes';
 import { Spinner } from '@/components/ui/states';
+import { useIsAdmin } from '@/features/admin/hooks';
 import { useSession } from '@/features/auth/session-context';
 import { useProfile } from '@/features/profile/hooks';
 
@@ -30,5 +31,19 @@ export function RequireOnboarding() {
   if (profile.data && !profile.data.onboarding_completed_at) {
     return <Navigate to={routes.onboarding} replace />;
   }
+  return <Outlet />;
+}
+
+/**
+ * Gates the back-office. Convenience only — every table and Edge Function the
+ * screens behind this touch re-checks `is_admin()` on its own, so this is
+ * about not showing an admin console to someone who cannot use it, not about
+ * stopping them from reaching it. See `features/admin/hooks.ts`.
+ */
+export function RequireAdmin() {
+  const isAdmin = useIsAdmin();
+
+  if (isAdmin === undefined) return <Spinner />;
+  if (!isAdmin) return <Navigate to={routes.more} replace />;
   return <Outlet />;
 }
