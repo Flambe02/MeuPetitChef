@@ -99,6 +99,10 @@ src/lib/recipe-import/
   persist.ts               écriture Supabase
   providers/cookomix.ts
   providers/cookidoo.ts
+  providers/social.ts      Instagram / Facebook — lit la légende structurée
+
+supabase/functions/
+  import-recipe/index.ts   récupère l'URL côté serveur, lit la légende par IA
 
 scripts/recipe-importers/
   import-recipe.ts         une recette
@@ -265,10 +269,88 @@ conteneurs (`#preparation-section recipe-step`, `recipe-step`,
 « Préparation » dans les langues du site) et ne trouve rien plutôt que
 d'inventer.
 
+### Instagram et Facebook
+
+Un post ne publie pas de recette. Il publie une **légende** : de la prose, avec
+parfois les quantités, parfois seulement dans la vidéo. Aucun sélecteur ne lit
+ça, et prétendre le contraire produirait des recettes fausses avec assurance.
+
+La légende est donc lue par le modèle, dans `import-recipe`, et rendue sous
+forme d'objet `schema.org/Recipe` — c'est-à-dire dans le format que le reste du
+pipeline sait déjà analyser. Le provider `social` n'a rien d'autre à faire que
+lire cet objet, exactement comme `cookidoo` lit un JSON exporté.
+
+Conséquence voulue : **rien n'est traité à part.** Le même normaliseur déduit
+l'appareil (« na air fryer a 180 °C por 15 minutos » → `air_fryer`, 180 °C,
+900 s), le même validateur refuse une recette sans ingrédient, la même empreinte
+détecte un doublon. Ce qui sort du modèle est **validé, pas cru sur parole**.
+
+L'invite d'extraction interdit d'inventer, et le dit deux fois : une quantité
+absente de la légende reste absente, un temps non écrit n'est pas déduit, et si
+le texte ne donne pas le mode de préparo, `steps` revient vide plutôt que
+reconstitué à partir des ingrédients. Elle interdit aussi de traduire — un
+import garde la langue de sa source jusqu'à la passe d'adaptation explicite
+(§5 ter), comme pour Cookomix.
+
+Les deux réseaux tiennent dans un seul provider parce que l'analyse est
+identique ; le réseau survit dans l'identifiant externe (`instagram:C8xY_1aB2`),
+où il est une donnée et non une deuxième branche de code.
+
+**Limite honnête** : Instagram et Facebook servent leurs balises `og:` à un
+appelant identifié comme le nôtre — vérifié —, mais un post privé, supprimé ou
+protégé par un mur de connexion ne rend aucune légende. Le projet ne se déguise
+pas en navigateur pour passer (§7) : dans ce cas la fonction répond « ce post
+peut être privé, copiez la légende et collez-la », et le chemin collé fait le
+même travail.
+
 ### Mode 4 — extension navigateur (préparé, pas construit)
 
 `runImport()` accepte déjà `{ url, html, structuredData }`. Une extension ou un
 bookmarklet n'aurait qu'à poster cet objet ; aucun code d'import ne changerait.
+
+---
+
+## 3 bis. L'Edge Function `import-recipe`
+
+Ce que le navigateur ne peut pas faire, un serveur le peut. La fonction est le
+seul endroit qui sort sur le réseau pour le compte de l'application.
+
+```
+POST /functions/v1/import-recipe   { url }  ou  { text }
+
+  ↓ JWT vérifié auprès de Supabase Auth      un appelant anonyme ne dépense rien
+  ↓ hôte comparé à la liste blanche          cookomix / cookidoo / instagram / facebook
+  ↓ fetch, redirections suivies à la main    chaque saut est revérifié
+  ↓
+site de recettes  → { kind: 'html',       html }        analysé par le navigateur
+post social       → { kind: 'structured', recipe }      légende lue par le modèle
+```
+
+**La liste blanche est une frontière de sécurité, pas un confort.** Le
+navigateur en a sa propre copie pour décider quel bouton activer, mais celle-là
+est de l'ergonomie et se contourne en trois secondes. Un serveur qui télécharge
+ce qu'on lui demande est un proxy ouvert vers tout ce qu'il peut joindre, à
+commencer par les points d'accès internes de la plateforme. D'où : domaines
+enregistrables listés, `https` seulement, et **la même vérification rejouée à
+chaque redirection** — ne contrôler que le premier saut revient à ne rien
+contrôler. Facebook redirige déjà en pratique (`/cookidoo/` → `/Cookidoo/`).
+
+Autres garde-fous : 15 s de délai maximum, 3 Mo de corps maximum lu par morceaux
+entiers, 5 redirections, 12 000 caractères envoyés au modèle au plus.
+
+Un site de recettes ne coûte **aucun jeton** : ces pages publient leur
+`schema.org/Recipe`, et l'analyseur déterministe qui lit « 20 min/100 °C/vitesse
+1 » exactement vaut mieux qu'un modèle qui le lit à peu près.
+
+### Déploiement
+
+```bash
+supabase secrets set OPENAI_API_KEY=sk-...     # déjà posé pour generate-recipe
+supabase functions deploy import-recipe
+```
+
+Sans la clé, la fonction sert quand même les sites de recettes et répond 503 sur
+la lecture d'une légende — la moitié qui n'a pas besoin d'IA continue de marcher.
 
 ---
 
@@ -353,13 +435,19 @@ retentées, les décisions ne le sont pas). `--restart` ignore le journal.
 
 ### L'écran /importar
 
-Même analyseur, une contrainte en plus : **le navigateur ne peut pas télécharger
-une page d'un autre domaine.** Ni Cookomix ni Cookidoo n'envoient d'en-têtes
-CORS, donc `fetch()` est refusé avant même de partir. L'écran demande donc de
-coller le contenu de la page (ou un JSON), affiche la prévisualisation — titre,
-ingrédients, étapes, paramètres Thermomix détectés, avertissements — et
-n'écrit qu'après un clic explicite. Il affiche aussi la commande CLI équivalente
-pour le cas où c'est bien un téléchargement qu'on voulait.
+**Une URL suffit.** Le navigateur ne peut toujours pas télécharger une page d'un
+autre domaine — ni Cookomix, ni Cookidoo, ni Instagram n'envoient d'en-têtes
+CORS, `fetch()` est refusé avant de partir — mais il n'a plus à le faire :
+l'Edge Function `import-recipe` va chercher la page côté serveur (§3 bis).
+L'écran affiche ensuite la prévisualisation habituelle — titre, ingrédients,
+étapes, paramètres Thermomix détectés, avertissements — et n'écrit qu'après un
+clic explicite.
+
+Le champ « coller le texte » reste, ramené à ce qu'il a toujours été : la porte
+d'entrée quand le téléchargement ne peut pas marcher. Une page Cookidoo que seul
+son abonné ouvre, un post Instagram derrière un mur de connexion : on copie ce
+qu'on voit, on le colle. Du HTML ou du JSON passe par les analyseurs ; de la
+prose passe par la même lecture IA qu'une légende récupérée.
 
 ---
 
@@ -657,8 +745,12 @@ Ni la CLI, ni le lot, ni l'écran, ni la persistance ne changent.
 
 - **Cookidoo, étapes** : indisponibles sur les pages publiques (abonnement).
   Modes 2 et 3 pour les obtenir ; les sélecteurs du mode 2 sont heuristiques.
-- **Navigateur** : pas d'import par URL depuis l'application (CORS). La CLI le
-  fait ; une Edge Function pourrait le faire plus tard.
+- **Instagram / Facebook** : un post privé, supprimé ou derrière un mur de
+  connexion ne rend aucune légende, et rien ici ne cherche à passer outre. La
+  fonction le dit et propose de coller la légende.
+- **Légende lue par un modèle** : une recette de post est aussi complète que ce
+  que l'auteur a écrit. Si les quantités ne sont que dans la vidéo, elles
+  manqueront — signalées en avertissements, jamais devinées.
 - **Traduction** : aucune. C'est un choix, pas un manque — voir §2.
 - **Une seule route par import** : la route de la source. Les variantes Air
   Fryer / four / plaques viendront de la passe d'adaptation.

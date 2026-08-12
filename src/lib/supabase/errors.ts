@@ -48,6 +48,26 @@ export function unwrap<R extends AnyPostgrestResult>(result: R): NonNullable<R['
   return result.data;
 }
 
+/**
+ * The message an Edge Function put in its body, out of the error it threw.
+ *
+ * `functions.invoke` treats any non-2xx as a transport failure: `data` comes
+ * back null and the body is left unread inside `error.context`. That body is
+ * where every function in this project puts the sentence meant for the person
+ * — "esse post pode ser privado", "sessão expirada" — so without this the UI
+ * shows a generic apology and loses the only part that says what to do next.
+ */
+export async function readFunctionError(error: unknown): Promise<string | null> {
+  const response = (error as { context?: Response }).context;
+  if (!response || typeof response.json !== 'function') return null;
+  try {
+    const body = (await response.json()) as { error?: string };
+    return body.error ?? null;
+  } catch {
+    return null;
+  }
+}
+
 /** Same, but a missing row is a legitimate `null` rather than an error. */
 export function unwrapMaybe<R extends AnyPostgrestResult>(result: R): R['data'] | null {
   if (result.error) {

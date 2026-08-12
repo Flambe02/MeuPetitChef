@@ -1,6 +1,6 @@
 import type { ChefMode, EquipmentType, UnitKind } from '@/domain/types';
 import { supabase } from '@/lib/supabase/client';
-import { DataError, unwrap } from '@/lib/supabase/errors';
+import { DataError, readFunctionError, unwrap } from '@/lib/supabase/errors';
 
 import { normalizeDials } from './dials';
 
@@ -85,17 +85,6 @@ export async function generateRecipe(input: GenerateInput): Promise<GeneratedRec
   if (data?.error) throw new DataError(data.error);
   if (!data?.recipe) throw new DataError('Resposta vazia do chef.');
   return data.recipe;
-}
-
-async function readFunctionError(error: unknown): Promise<string | null> {
-  const response = (error as { context?: Response }).context;
-  if (!response || typeof response.json !== 'function') return null;
-  try {
-    const body = (await response.json()) as { error?: string };
-    return body.error ?? null;
-  } catch {
-    return null;
-  }
 }
 
 /* ---------------------------------------------------------------------------

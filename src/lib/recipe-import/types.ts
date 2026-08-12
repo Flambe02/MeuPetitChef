@@ -19,8 +19,17 @@
  */
 import type { ChefMode, Difficulty, DialKind, EquipmentType, UnitKind } from '@/domain/types';
 
-/** Registered providers. Adding one is a file in `providers/`, not a migration. */
-export type ProviderId = 'cookomix' | 'cookidoo';
+/**
+ * Registered providers. Adding one is a file in `providers/`, not a migration —
+ * `recipe_imports.provider` is free text precisely so this stays a code change.
+ *
+ * `social` is one provider for Instagram and Facebook rather than two, because
+ * the parsing is identical: neither publishes a recipe, both publish a caption,
+ * and what is parsed is the structured object the reading pass produced from
+ * that caption. Which network it came from survives in the external id
+ * (`instagram:C8xY…`), where it is data rather than a second code path.
+ */
+export type ProviderId = 'cookomix' | 'cookidoo' | 'social';
 
 /* ---------------------------------------------------------------------------
  * Raw side

@@ -20,6 +20,7 @@ import { cn } from '@/lib/cn';
 const PROVIDERS: { id: ProviderId; label: string }[] = [
   { id: 'cookomix', label: 'Cookomix' },
   { id: 'cookidoo', label: 'Cookidoo' },
+  { id: 'social', label: 'Instagram / Facebook' },
 ];
 
 /**
@@ -33,10 +34,15 @@ const PROVIDERS: { id: ProviderId; label: string }[] = [
  * appliances you actually own. Converting a Thermomix recipe to an air fryer
  * is not a translation: the procedure genuinely changes.
  *
- * It runs the same parser as the CLI; what it cannot do is fetch the page.
- * Recipe sites send no CORS headers, so the browser refuses the request before
- * it leaves the tab — hence the paste box, and the CLI command shown for when
- * fetching is what you really want.
+ * It runs the same parser as the CLI, and now it fetches too: the browser still
+ * cannot reach cookomix.com or instagram.com itself — no CORS headers, the
+ * request is refused before it leaves the tab — so the `import-recipe` Edge
+ * Function does it server-side. A URL on its own is therefore enough.
+ *
+ * The paste box stays, demoted to what it always really was: the way in when
+ * fetching cannot work. A Cookidoo page only its subscriber can open, an
+ * Instagram post behind a login wall — copy what you can see, paste it here.
+ * Prose goes through the same reading pass a fetched caption does.
  */
 export default function ImportScreen() {
   const [url, setUrl] = useState('');
@@ -91,7 +97,7 @@ export default function ImportScreen() {
                 setUrl(event.target.value);
                 reset();
               }}
-              placeholder="https://www.cookomix.com/recettes/…"
+              placeholder="Cole o link — Cookomix, Cookidoo, Instagram ou Facebook"
               className="h-11 w-full bg-transparent text-body text-ink outline-none placeholder:text-ink-muted"
             />
           </div>
@@ -118,7 +124,7 @@ export default function ImportScreen() {
           </div>
 
           <label className="mt-4 block text-small text-ink-muted" htmlFor="import-source">
-            Conteúdo da página ou JSON
+            Ou cole o texto da receita <span className="text-ink-muted">(opcional)</span>
           </label>
           <textarea
             id="import-source"
@@ -127,23 +133,21 @@ export default function ImportScreen() {
               setSource(event.target.value);
               reset();
             }}
-            rows={5}
-            placeholder="Abra a receita, use Ctrl+U (ver código-fonte), copie tudo e cole aqui."
+            rows={4}
+            placeholder="A legenda do post, ou o conteúdo da página (Ctrl+U). Use quando o link não abrir sozinho."
             className="mt-1 w-full rounded-lg border border-hairline bg-transparent p-3 font-mono text-[12px] text-ink outline-none placeholder:text-ink-muted"
           />
 
           <p className="mt-2 text-small text-ink-muted">
-            O navegador não consegue baixar páginas de outros sites — por isso o conteúdo é colado.
-            Para importar direto pelo endereço, use o terminal:
+            {source.trim()
+              ? 'Vamos ler o texto colado — o endereço serve só para registrar a origem.'
+              : 'Buscamos a página para você. Posts privados ou páginas que pedem login não abrem: nesses casos, copie o texto e cole acima.'}
           </p>
-          <code className="mt-1 block overflow-x-auto rounded-lg bg-inset p-2 font-mono text-[12px] text-ink-muted">
-            npm run recipe:import -- &quot;{url.trim() || 'URL'}&quot;
-          </code>
 
           <Button
             className="mt-4"
             block
-            disabled={analyze.isPending || !source.trim() || !activeProvider}
+            disabled={analyze.isPending || (!source.trim() && !url.trim())}
             onClick={() =>
               analyze.mutate({
                 url: url.trim(),
@@ -152,7 +156,7 @@ export default function ImportScreen() {
               })
             }
           >
-            {analyze.isPending ? 'Analisando…' : 'Analisar receita'}
+            {analyze.isPending ? 'Buscando…' : 'Buscar receita'}
           </Button>
 
           {analyze.isError ? (
