@@ -36,6 +36,7 @@ import { useSuggestions } from '@/features/recipes/hooks';
 import { useSpeechInput } from '@/hooks/useSpeechInput';
 import { cn } from '@/lib/cn';
 import { formatTimer } from '@/lib/format';
+import { asset } from '@/lib/asset';
 
 const REASON_ICON = { leaf: Leaf, fan: Fan, zap: Zap, clock: Clock } as const;
 
@@ -153,7 +154,7 @@ export default function HomeScreen() {
               {/* `object-top`: the illustration is a full-body character, so
                   anchoring it anywhere else crops to the chef's feet. */}
               <img
-                src={`/chefs/chef-${mode}.png`}
+                src={asset(`chefs/chef-${mode}.png`)}
                 alt=""
                 className="size-full scale-[1.7] object-contain object-top"
               />

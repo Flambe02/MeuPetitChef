@@ -11,12 +11,14 @@ import { EmptyState, ErrorState, Spinner } from '@/components/ui/states';
 import { EQUIPMENT_THEME } from '@/domain/equipment';
 import { playTimerChime, primeAudio } from '@/features/cook/chime';
 import { useCookSession } from '@/features/cook/hooks';
+import { useIsFavorite, useToggleFavorite } from '@/features/favorites/hooks';
 import { useTimerStore } from '@/features/cook/timer-store';
 import { useProfile } from '@/features/profile/hooks';
 import { useRecipe } from '@/features/recipes/hooks';
 import { useWakeLock } from '@/hooks/useWakeLock';
 import { cn } from '@/lib/cn';
 import { formatTimer } from '@/lib/format';
+import { asset } from '@/lib/asset';
 
 /**
  * Guided cook mode — landscape, one action per screen, screen kept awake.
@@ -44,6 +46,11 @@ export default function CookScreen() {
   const [, forceTick] = useState(0);
   const [soundOn, setSoundOn] = useState(true);
   const [isDone, setIsDone] = useState(false);
+
+  // Declared with the other hooks: the screen returns early while the recipe
+  // loads, and a hook after a return is a hook that sometimes does not run.
+  const saveToBook = useToggleFavorite();
+  const isInBook = useIsFavorite(recipe.data?.id);
 
   const timer = useTimerStore();
   useWakeLock(profile?.keep_screen_awake ?? true);
@@ -133,7 +140,7 @@ export default function CookScreen() {
     <LandscapeScreen>
       {/* ── Top bar ──────────────────────────────────────────────────── */}
       <header className="flex flex-none items-center gap-3.5 border-b border-hairline py-3.5 pr-5 pl-5">
-        <img src="/brand/badge.png" alt="" className="size-10 flex-none rounded-pill" />
+        <img src={asset('brand/badge.png')} alt="" className="size-10 flex-none rounded-pill" />
 
         <div className="flex min-w-0 flex-1 items-center gap-3">
           <span className="truncate font-display text-[19px] font-bold tracking-[-0.025em]">
@@ -199,56 +206,70 @@ export default function CookScreen() {
       </header>
 
       {/* ── The step ─────────────────────────────────────────────────── */}
-      <main className="flex min-h-0 flex-1 items-center gap-6 overflow-hidden px-10">
-        <div className="min-w-0 flex-1">
-          {step.verb ? (
-            <p className="font-mono text-[13px] tracking-[0.2em] text-rouge uppercase">
-              {step.verb}
-            </p>
-          ) : null}
+      {/* `items-center` used to sit on this row, which centred the step column
+          and then clipped it at BOTH ends as soon as it outgrew the viewport —
+          a phone in landscape leaves about 320px here, and a three-line
+          instruction plus a dial needs more. The column is now its own scroll
+          container: `min-h-full justify-center` keeps a short step centred, and
+          a long one scrolls instead of losing its first line. */}
+      <main className="flex min-h-0 flex-1 gap-6 overflow-hidden px-10">
+        <div className="min-w-0 flex-1 overflow-y-auto overscroll-contain">
+          <div className="flex min-h-full flex-col justify-center py-4">
+            {step.verb ? (
+              <p className="font-mono text-[13px] tracking-[0.2em] text-rouge uppercase">
+                {step.verb}
+              </p>
+            ) : null}
 
-          {/* Scales with viewport height rather than sitting at a fixed 38px:
+            {/* Scales with viewport height rather than sitting at a fixed 38px:
               the screen must never clip an instruction someone is following. */}
-          <p
-            className="mt-3 font-display leading-[1.08] font-bold tracking-[-0.03em] text-ink"
-            style={{ fontSize: 'clamp(22px, 6.4vh, 38px)' }}
-          >
-            {step.instruction}
-          </p>
+            <p
+              className="mt-3 font-display leading-[1.08] font-bold tracking-[-0.03em] text-ink"
+              style={{ fontSize: 'clamp(22px, 6.4vh, 38px)' }}
+            >
+              {step.instruction}
+            </p>
 
-          {step.dials.length > 0 || hasTimer ? (
-            <div className="mt-6 flex items-start gap-[18px]">
-              {hasTimer ? (
-                <Dial
-                  kind="tempo"
-                  value={formatTimer(isThisStepsTimer ? timer.remaining() : step.durationSeconds!)}
-                  sub="min · seg"
-                  shape={theme.shape}
-                  accent={theme.colorVar}
-                />
-              ) : null}
-              {step.dials
-                .filter((dial) => dial.kind !== 'tempo' || !hasTimer)
-                .map((dial) => (
+            {step.dials.length > 0 || hasTimer ? (
+              <div className="mt-6 flex items-start gap-[18px]">
+                {hasTimer ? (
                   <Dial
-                    key={dial.kind}
-                    kind={dial.kind}
-                    value={dial.valueText ?? String(dial.valueNum ?? '—')}
-                    sub={dial.subLabel}
+                    kind="tempo"
+                    value={formatTimer(
+                      isThisStepsTimer ? timer.remaining() : step.durationSeconds!,
+                    )}
+                    sub="min · seg"
                     shape={theme.shape}
                     accent={theme.colorVar}
                   />
-                ))}
-            </div>
-          ) : null}
+                ) : null}
+                {step.dials
+                  .filter((dial) => dial.kind !== 'tempo' || !hasTimer)
+                  .map((dial) => (
+                    <Dial
+                      key={dial.kind}
+                      kind={dial.kind}
+                      value={dial.valueText ?? String(dial.valueNum ?? '—')}
+                      sub={dial.subLabel}
+                      shape={theme.shape}
+                      accent={theme.colorVar}
+                    />
+                  ))}
+              </div>
+            ) : null}
 
-          {step.alertText ? (
-            <p className="mt-5 max-w-[52ch] text-small text-ink-muted">{step.alertText}</p>
-          ) : null}
+            {step.alertText ? (
+              <p className="mt-5 max-w-[52ch] text-small text-ink-muted">{step.alertText}</p>
+            ) : null}
+          </div>
         </div>
 
-        <div className="flex w-[300px] flex-none items-center justify-center text-ink/15">
-          <Vessel kind={theme.vessel} className="size-[280px]" />
+        {/* The appliance outline gives way before the instruction does: it is
+            an orientation cue, and a narrow landscape phone needs the width
+            for the words. Hidden entirely below 700px, where 300px of it would
+            take nearly half the screen. */}
+        <div className="hidden w-[clamp(180px,26vw,300px)] flex-none items-center justify-center text-ink/15 min-[700px]:flex">
+          <Vessel kind={theme.vessel} className="size-full max-h-70 max-w-70" />
         </div>
       </main>
 
@@ -268,7 +289,7 @@ export default function CookScreen() {
       {isDone ? (
         <div className="animate-fade absolute inset-0 flex items-center justify-center bg-base/85 backdrop-blur-[14px]">
           <div className="flex max-w-[460px] items-center gap-5 rounded-xl border border-hairline bg-raised px-7 py-6.5">
-            <img src="/brand/badge.png" alt="" className="size-20 flex-none rounded-pill" />
+            <img src={asset('brand/badge.png')} alt="" className="size-20 flex-none rounded-pill" />
             <div>
               <span className="sn-datalabel" data-tone="signal">
                 Concluído
@@ -290,12 +311,19 @@ export default function CookScreen() {
                 >
                   Voltar à receita
                 </button>
+                {/* This used to only navigate. A button that says "Salvar" and
+                    writes nothing is worse than no button: the cook believes
+                    the recipe is in their book and finds it empty later. */}
                 <button
                   type="button"
-                  onClick={() => void navigate(routes.book)}
-                  className="h-[42px] rounded-lg border border-strong px-4 text-[14px] font-semibold text-ink"
+                  disabled={saveToBook.isPending}
+                  onClick={() => {
+                    if (!isInBook) saveToBook.mutate({ recipe: data, next: true });
+                    void navigate(routes.book);
+                  }}
+                  className="h-[42px] rounded-lg border border-strong px-4 text-[14px] font-semibold text-ink disabled:opacity-45"
                 >
-                  Salvar no livro
+                  {isInBook ? 'Ver no livro' : 'Salvar no livro'}
                 </button>
               </div>
             </div>

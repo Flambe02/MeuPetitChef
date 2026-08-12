@@ -4,6 +4,7 @@ import { Link } from 'react-router';
 
 import { routes } from '@/app/routes';
 import { DataLabel } from '@/components/ui/Card';
+import { LanguageSwitcher } from '@/components/LanguageSwitcher';
 import { useEquipment } from '@/features/profile/hooks';
 import { useFavorites } from '@/features/favorites/hooks';
 
@@ -107,6 +108,10 @@ export default function MoreScreen() {
           </div>
         </section>
       ))}
+
+      <section className="mb-6 rounded-lg border border-hairline bg-raised px-4 py-3.75">
+        <LanguageSwitcher />
+      </section>
     </div>
   );
 }

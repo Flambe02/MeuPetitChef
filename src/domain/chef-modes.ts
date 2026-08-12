@@ -1,4 +1,5 @@
 import type { ChefMode } from './types';
+import { asset } from '@/lib/asset';
 
 /**
  * The three chefs are the product's nutrition axis. The user picks a chef, not
@@ -18,19 +19,19 @@ export const CHEF_MODES: readonly ChefModeMeta[] = [
     id: 'normal',
     label: 'Normal',
     description: 'Equilibrado, profissional e sempre preparado. Seu chef do dia a dia.',
-    illustration: '/chefs/chef-normal.png',
+    illustration: asset('chefs/chef-normal.png'),
   },
   {
     id: 'gourmand',
     label: 'Gourmand',
     description: 'Apaixonado por sabores e boas experiências. Generoso e acolhedor.',
-    illustration: '/chefs/chef-gourmand.png',
+    illustration: asset('chefs/chef-gourmand.png'),
   },
   {
     id: 'fit',
     label: 'Fit',
     description: 'Leve, ativo e disciplinado. Equilíbrio entre saúde, prazer e performance.',
-    illustration: '/chefs/chef-fit.png',
+    illustration: asset('chefs/chef-fit.png'),
   },
 ] as const;
 

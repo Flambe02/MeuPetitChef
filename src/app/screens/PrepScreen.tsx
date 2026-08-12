@@ -12,6 +12,7 @@ import { useEquipment, useProfile } from '@/features/profile/hooks';
 import { useRecipe } from '@/features/recipes/hooks';
 import { cn } from '@/lib/cn';
 import { formatDuration, formatKcal } from '@/lib/format';
+import { asset } from '@/lib/asset';
 
 /**
  * "Antes de começar" — the pre-flight before guided cooking.
@@ -168,7 +169,7 @@ export default function PrepScreen() {
 
         {removed.length > 0 ? (
           <div className="mt-3.5 flex items-start gap-3">
-            <img src="/brand/badge.png" alt="" className="size-10 shrink-0 rounded-pill" />
+            <img src={asset('brand/badge.png')} alt="" className="size-10 shrink-0 rounded-pill" />
             <p className="flex-1 rounded-lg border border-hairline border-l-2 border-l-rouge bg-raised px-4 py-3 text-small leading-[1.5] text-ink-secondary">
               {switched
                 ? `Troquei o caminho para « ${path.name} », que não precisa do que você tirou.`

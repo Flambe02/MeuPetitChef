@@ -1,4 +1,5 @@
 import '@/styles/index.css';
+import { mountTranslateWidget } from '@/lib/translate';
 
 const container = document.getElementById('root');
 if (!container) throw new Error('#root não encontrado no index.html');
@@ -43,6 +44,11 @@ function renderBootFailure(target: HTMLElement, error: unknown): void {
   panel.append(title, detail);
   target.replaceChildren(panel);
 }
+
+// Google Translate rewrites the DOM; the guard inside must be installed
+// before React mounts, and the script itself only loads when a language
+// other than Portuguese was chosen.
+mountTranslateWidget();
 
 void import('@/app/bootstrap')
   .then(({ mount }) => {
