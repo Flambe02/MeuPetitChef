@@ -369,9 +369,19 @@ INGREDIENTES: uma linha por ingrediente, como está escrito, com a quantidade e 
 unidade na mesma linha ("2 colheres de sopa de azeite", "500 g de frango").
 Não separe em campos, não converta unidades, não normalize nomes.
 
-PASSOS: uma ação por passo. "verb" é UMA palavra no imperativo (Refogar, Assar,
-Bater, Misturar) quando o texto deixa claro; caso contrário null. "text" é a
-instrução como o autor escreveu, no máximo reorganizada em frases separadas.
+PASSOS: uma ação por passo. "verb" é UMA palavra no imperativo quando o texto
+deixa claro; caso contrário null. "text" é a instrução como o autor escreveu,
+no máximo reorganizada em frases separadas.
+
+O VERBO FICA NO IDIOMA DO TEXTO, como todo o resto. Um verbo em português em
+cima de uma frase em alemão não faz sentido para quem cozinha, e traduzir pela
+metade produz palavras que não existem em idioma nenhum — "Zerkleinhar" saiu de
+uma tentativa dessas. Use uma palavra que o próprio autor usaria:
+- texto em francês:  Couper, Mélanger, Cuire, Saisir, Dresser
+- texto em alemão:   Schneiden, Mischen, Kochen, Zerkleinern, Backen
+- texto em espanhol: Cortar, Mezclar, Cocer, Hornear
+- texto em português: Cortar, Misturar, Refogar, Assar
+Na dúvida entre um verbo inventado e nenhum verbo, devolva null.
 Mantenha os números que o autor deu — "por 15 minutos", "a 180 °C", "vel. 5" —
 porque o aplicativo lê esses números para montar o cronômetro.
 
