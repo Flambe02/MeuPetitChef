@@ -39,39 +39,52 @@ const shellChildren: RouteObject[] = [
   { path: routes.import, element: load(() => import('@/app/screens/ImportScreen')) },
 ];
 
-export const router = createBrowserRouter([
+export const router = createBrowserRouter(
+  [
+    {
+      errorElement: <RouteErrorBoundary />,
+      children: [
+        // Public
+        { path: routes.signIn, element: load(() => import('@/app/screens/SignInScreen')) },
+
+        // Authenticated
+        {
+          element: <RequireAuth />,
+          children: [
+            // Onboarding sits inside auth but outside the onboarding guard,
+            // otherwise it would redirect to itself forever.
+            {
+              path: routes.onboarding,
+              element: load(() => import('@/app/screens/OnboardingScreen')),
+            },
+
+            {
+              element: <RequireOnboarding />,
+              children: [
+                // Cook mode and its pre-flight own the full screen — no shell, no
+                // tab bar. Both end in a pinned primary action that a tab bar
+                // would sit on top of, and neither is a place to wander off from.
+                { path: routes.cook(), element: load(() => import('@/app/screens/CookScreen')) },
+                { path: routes.prep(), element: load(() => import('@/app/screens/PrepScreen')) },
+                { element: <AppShell />, children: shellChildren },
+              ],
+            },
+          ],
+        },
+
+        { path: '*', element: load(() => import('@/app/screens/NotFoundScreen')) },
+      ],
+    },
+  ],
   {
-    errorElement: <RouteErrorBoundary />,
-    children: [
-      // Public
-      { path: routes.signIn, element: load(() => import('@/app/screens/SignInScreen')) },
-
-      // Authenticated
-      {
-        element: <RequireAuth />,
-        children: [
-          // Onboarding sits inside auth but outside the onboarding guard,
-          // otherwise it would redirect to itself forever.
-          {
-            path: routes.onboarding,
-            element: load(() => import('@/app/screens/OnboardingScreen')),
-          },
-
-          {
-            element: <RequireOnboarding />,
-            children: [
-              // Cook mode and its pre-flight own the full screen — no shell, no
-              // tab bar. Both end in a pinned primary action that a tab bar
-              // would sit on top of, and neither is a place to wander off from.
-              { path: routes.cook(), element: load(() => import('@/app/screens/CookScreen')) },
-              { path: routes.prep(), element: load(() => import('@/app/screens/PrepScreen')) },
-              { element: <AppShell />, children: shellChildren },
-            ],
-          },
-        ],
-      },
-
-      { path: '*', element: load(() => import('@/app/screens/NotFoundScreen')) },
-    ],
+    /**
+     * Where the app lives on its host.
+     *
+     * `/` everywhere except GitHub Pages, which serves a project site from
+     * `/<repo>/`. Vite fills `BASE_URL` from its own `base`, so this follows
+     * the build automatically — without it, every route would be matched
+     * against `/MeuPetitChef/receita/…` and nothing would ever hit.
+     */
+    basename: import.meta.env.BASE_URL,
   },
-]);
+);

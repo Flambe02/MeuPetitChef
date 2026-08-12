@@ -145,6 +145,67 @@ Détail des décisions : [docs/architecture.md](docs/architecture.md).
 
 ---
 
+## Déploiement — GitHub Pages
+
+Le site est publié sur https://flambe02.github.io/MeuPetitChef/ par
+`.github/workflows/deploy-pages.yml` à chaque push sur `main`. Les Pull
+Requests sont vérifiées et construites, jamais publiées.
+
+> ⚠️ **Le dépôt est privé, le site publié ne l'est pas.** Publier des Pages en
+> accès restreint demande GitHub Enterprise. Tout ce que l'application affiche
+> sans authentification est donc public.
+
+### Deux secrets à renseigner
+
+Settings → Secrets and variables → Actions :
+
+| Secret                   | Valeur                      |
+| ------------------------ | --------------------------- |
+| `VITE_SUPABASE_URL`      | l'URL du projet Supabase    |
+| `VITE_SUPABASE_ANON_KEY` | la clé `anon` / publishable |
+
+La clé anon est publique par conception — elle part dans le bundle du
+navigateur, et ce sont les politiques RLS qui protègent les données, pas le
+secret de cette clé. Elle passe par les secrets du dépôt pour ne pas vivre
+dans le code.
+
+### Le sous-chemin
+
+Pages sert un site de projet depuis `/<dépôt>/`, pas depuis la racine. Quatre
+endroits en dépendent, tous dérivés d'une seule variable :
+
+|                                                                |                                        |
+| -------------------------------------------------------------- | -------------------------------------- |
+| `base` Vite                                                    | `VITE_BASE_PATH`, posé par le workflow |
+| manifeste PWA (`id`, `start_url`, `scope`, icônes, raccourcis) | `vite.config.ts`                       |
+| `basename` du routeur                                          | `import.meta.env.BASE_URL`             |
+| redirection du lien de connexion                               | `import.meta.env.BASE_URL`             |
+
+Pour reproduire le build des Pages en local :
+
+```bash
+VITE_BASE_PATH=/MeuPetitChef/ npm run build:pages
+```
+
+Sous Git Bash (Windows), préfixez par `MSYS_NO_PATHCONV=1` — sinon le shell
+transforme `/MeuPetitChef/` en chemin Windows avant que Vite le voie.
+
+### Le repli SPA
+
+Pages n'a pas de règle de réécriture : un lien partagé vers `/receita/xxx`
+chercherait un dossier inexistant. `build:pages` copie donc `index.html` en
+`404.html` — Pages le renvoie, l'application démarre et le routeur lit l'URL
+demandée. Le code HTTP reste 404, ce qui est cosmétiquement faux et sans effet
+visible.
+
+### À faire côté Supabase
+
+Authentication → URL Configuration → **Redirect URLs** doit contenir
+`https://flambe02.github.io/MeuPetitChef/`, sinon le lien magique de connexion
+est refusé.
+
+---
+
 ## Documentation
 
 - [Concept produit détaillé](docs/concept-produit.md)

@@ -29,7 +29,9 @@ export async function signUpWithPassword(email: string, password: string, displa
 export async function signInWithOtp(email: string): Promise<void> {
   const { error } = await supabase.auth.signInWithOtp({
     email,
-    options: { emailRedirectTo: `${window.location.origin}/` },
+    // `BASE_URL`, not "/": on GitHub Pages the app lives under /<repo>/, and a
+    // magic link pointing at the domain root would land outside it.
+    options: { emailRedirectTo: `${window.location.origin}${import.meta.env.BASE_URL}` },
   });
   if (error) throw new DataError(translateAuthError(error.message), { cause: error });
 }

@@ -8,7 +8,31 @@ import { VitePWA } from 'vite-plugin-pwa';
 
 const APP_NAME = 'Meu Petit Chef';
 
+/**
+ * Where the app is served from.
+ *
+ * `/` in development and on any host that serves the app at a domain root.
+ * GitHub Pages serves a project site from `/<repo>/`, so the workflow sets
+ * `VITE_BASE_PATH=/MeuPetitChef/` — and everything that hardcodes a leading
+ * slash has to follow: the PWA manifest, the service worker's fallback, the
+ * router's basename and the auth redirect. Get one of them wrong and the app
+ * either 404s on its own assets or silently leaves its own scope.
+ *
+ * Always ends with a slash, which is what Vite exposes as `import.meta.env.BASE_URL`.
+ */
+function normalizeBase(value: string | undefined): string {
+  const trimmed = (value ?? '').trim();
+  if (!trimmed || trimmed === '/') return '/';
+  // Accepts `MeuPetitChef`, `/MeuPetitChef` and `/MeuPetitChef/` alike — a
+  // missing slash at either end is the easiest thing in the world to get
+  // wrong, and it breaks every asset URL in the build.
+  return `/${trimmed.replace(/^\/+|\/+$/g, '')}/`;
+}
+
+const BASE = normalizeBase(process.env.VITE_BASE_PATH);
+
 export default defineConfig({
+  base: BASE,
   plugins: [
     react(),
     tailwindcss(),
@@ -17,15 +41,15 @@ export default defineConfig({
       injectRegister: null,
       includeAssets: ['favicon.ico', 'apple-touch-icon.png', 'brand/*.png'],
       manifest: {
-        id: '/',
+        id: BASE,
         name: APP_NAME,
         short_name: 'Petit Chef',
         description:
           'Receitas que se adaptam aos seus equipamentos, aos seus objetivos e às suas porções.',
         lang: 'pt-BR',
         dir: 'ltr',
-        start_url: '/',
-        scope: '/',
+        start_url: BASE,
+        scope: BASE,
         display: 'standalone',
         // Deliberately unlocked. Sixteen of the eighteen screens are portrait,
         // but cook mode and the recipe spread are designed landscape — the
@@ -37,25 +61,29 @@ export default defineConfig({
         theme_color: '#0B0D10',
         categories: ['food', 'lifestyle', 'health'],
         icons: [
-          { src: '/pwa-192.png', sizes: '192x192', type: 'image/png' },
-          { src: '/pwa-512.png', sizes: '512x512', type: 'image/png' },
+          { src: `${BASE}pwa-192.png`, sizes: '192x192', type: 'image/png' },
+          { src: `${BASE}pwa-512.png`, sizes: '512x512', type: 'image/png' },
           {
-            src: '/maskable-icon-512.png',
+            src: `${BASE}maskable-icon-512.png`,
             sizes: '512x512',
             type: 'image/png',
             purpose: 'maskable',
           },
         ],
         shortcuts: [
-          { name: 'Sugestões de hoje', url: '/sugestoes', description: 'O que cozinhar agora' },
-          { name: 'Minhas receitas', url: '/favoritos', description: 'Favoritos e coleções' },
-          { name: 'Lista de compras', url: '/compras', description: 'O que falta comprar' },
+          {
+            name: 'Sugestões de hoje',
+            url: `${BASE}sugestoes`,
+            description: 'O que cozinhar agora',
+          },
+          { name: 'Minhas receitas', url: `${BASE}favoritos`, description: 'Favoritos e coleções' },
+          { name: 'Lista de compras', url: `${BASE}compras`, description: 'O que falta comprar' },
         ],
       },
       workbox: {
         globPatterns: ['**/*.{js,css,html,woff2,svg,ico}'],
         // The cook screen must survive a dropped connection mid-recipe.
-        navigateFallback: '/index.html',
+        navigateFallback: `${BASE}index.html`,
         navigateFallbackDenylist: [/^\/api\//],
         cleanupOutdatedCaches: true,
         clientsClaim: true,

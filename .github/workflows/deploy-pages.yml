@@ -1,0 +1,98 @@
+# Vérifie puis publie l'application sur GitHub Pages.
+#
+# Deux tâches, dans cet ordre : rien n'est déployé si `npm run verify` échoue.
+# `verify` rejoue les migrations dans un Postgres WASM, typecheck, lint, lance
+# les tests et construit — c'est la même commande qu'en local.
+#
+# Le site est servi depuis https://flambe02.github.io/MeuPetitChef/, donc
+# VITE_BASE_PATH doit correspondre au nom du dépôt (voir vite.config.ts).
+name: Deploy to GitHub Pages
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  # Exigé par actions/deploy-pages pour obtenir le jeton OIDC de déploiement.
+  id-token: write
+
+# Un seul déploiement à la fois ; les pushes rapprochés font la queue plutôt
+# que de se marcher dessus. `cancel-in-progress: false` parce qu'un déploiement
+# interrompu à mi-chemin laisserait le site dans un état incohérent.
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  verify:
+    name: Vérifier
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          # Les scripts d'import sont écrits en TypeScript et exécutés
+          # directement par Node, ce qui demande le type stripping natif.
+          node-version: '22.18'
+          cache: npm
+
+      - run: npm ci
+
+      - name: npm run verify
+        run: npm run verify
+        env:
+          # Le build remplace ces variables dans le bundle. Des valeurs
+          # structurellement valides suffisent ici : cette étape ne parle à
+          # aucun projet Supabase, elle vérifie le schéma dans PGlite.
+          VITE_SUPABASE_URL: https://verify.supabase.co
+          VITE_SUPABASE_ANON_KEY: verify-anon-key-0000000000000000
+
+  build:
+    name: Construire le site
+    needs: verify
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22.18'
+          cache: npm
+
+      - run: npm ci
+
+      - name: Construire pour le sous-chemin des Pages
+        run: npm run build:pages
+        env:
+          # Doit finir par une barre oblique : Vite s'en sert tel quel pour
+          # `import.meta.env.BASE_URL`, que lisent le routeur et l'auth.
+          VITE_BASE_PATH: /${{ github.event.repository.name }}/
+          # La clé anon est publique par conception — c'est la RLS qui protège
+          # les données, pas le secret de cette clé. Elle passe quand même par
+          # les secrets du dépôt pour ne pas vivre dans le code.
+          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+          VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
+
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: dist
+
+  deploy:
+    name: Déployer
+    # Les Pull Requests sont vérifiées et construites, jamais publiées.
+    if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4
