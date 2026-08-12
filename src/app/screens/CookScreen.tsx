@@ -1,9 +1,19 @@
-import { ChevronLeft, ChevronRight, Pause, Play, Volume2, VolumeX, X } from 'lucide-react';
+import {
+  ChevronLeft,
+  ChevronRight,
+  Pause,
+  Play,
+  RotateCw,
+  Smartphone,
+  Volume2,
+  VolumeX,
+  X,
+} from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router';
 
 import { routes } from '@/app/routes';
-import { LandscapeScreen } from '@/components/LandscapeScreen';
+import { FullScreen } from '@/components/FullScreen';
 import { Dial } from '@/components/cook/Dial';
 import { Vessel } from '@/components/cook/Vessel';
 import { EmptyState, ErrorState, Spinner } from '@/components/ui/states';
@@ -14,6 +24,7 @@ import { useIsFavorite, useToggleFavorite } from '@/features/favorites/hooks';
 import { useTimerStore } from '@/features/cook/timer-store';
 import { useProfile } from '@/features/profile/hooks';
 import { useRecipe } from '@/features/recipes/hooks';
+import { useCookOrientation } from '@/hooks/useCookOrientation';
 import { useWakeLock } from '@/hooks/useWakeLock';
 import { cn } from '@/lib/cn';
 import { formatTimer } from '@/lib/format';
@@ -52,6 +63,7 @@ export default function CookScreen() {
   const isInBook = useIsFavorite(recipe.data?.id);
 
   const timer = useTimerStore();
+  const orientation = useCookOrientation();
   useWakeLock(profile?.keep_screen_awake ?? true);
 
   const wantsSound = soundOn && profile?.timer_sound !== false;
@@ -135,8 +147,264 @@ export default function CookScreen() {
     goTo(index + 1);
   };
 
+  /* ── Bom apetite ──────────────────────────────────────────────────────
+     Written once and rendered by both layouts: it covers the whole screen,
+     so it has no orientation of its own. */
+  const doneOverlay = isDone ? (
+    <div className="animate-fade absolute inset-0 flex items-center justify-center p-5 bg-base/85 backdrop-blur-[14px]">
+      <div className="flex max-w-[460px] flex-wrap items-center gap-5 rounded-xl border border-hairline bg-raised px-7 py-6.5">
+        <img src={asset('brand/badge.png')} alt="" className="size-20 flex-none rounded-pill" />
+        <div className="min-w-0 flex-1">
+          <span className="sn-datalabel" data-tone="signal">
+            Concluído
+          </span>
+          <p className="mt-3 font-display text-[28px] leading-[1.1] font-bold tracking-[-0.03em] text-ink">
+            Bom apetite.
+          </p>
+          <p className="mt-2.5 mb-4.5 text-small leading-[1.6] text-ink-muted">
+            {path?.name} · {steps.length} etapas
+            {data.variants[profile?.chef_mode ?? 'normal']?.kcal
+              ? ` · ${Math.round(data.variants[profile?.chef_mode ?? 'normal']!.kcal!)} kcal por porção`
+              : ''}
+          </p>
+          <div className="flex flex-wrap gap-2">
+            <button
+              type="button"
+              onClick={() => void navigate(recipeRoute, { replace: true })}
+              className="h-[42px] rounded-lg bg-graphite-900 px-[18px] text-[14px] font-semibold text-porcelain-100"
+            >
+              Voltar à receita
+            </button>
+            {/* This used to only navigate. A button that says "Salvar" and
+                writes nothing is worse than no button: the cook believes the
+                recipe is in their book and finds it empty later. */}
+            <button
+              type="button"
+              disabled={saveToBook.isPending}
+              onClick={() => {
+                if (!isInBook) saveToBook.mutate({ recipe: data, next: true });
+                void navigate(routes.book);
+              }}
+              className="h-[42px] rounded-lg border border-strong px-4 text-[14px] font-semibold text-ink disabled:opacity-45"
+            >
+              {isInBook ? 'Ver no livro' : 'Salvar no livro'}
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  ) : null;
+
+  /** The appliance tag — same mark in both layouts. */
+  const equipmentTag = (
+    <span
+      className="flex-none rounded-xs border px-2 py-1 font-mono text-[10px] tracking-[0.14em] uppercase"
+      style={{ color: theme.colorVar, borderColor: theme.colorVar }}
+    >
+      {theme.short}
+    </span>
+  );
+
+  const counter = (
+    <span className="flex-none font-mono text-[13px] tracking-[0.14em] text-ink-muted">
+      {String(index + 1).padStart(2, '0')} / {String(steps.length).padStart(2, '0')}
+    </span>
+  );
+
+  /**
+   * The rotation switch, which the design puts top right next to the exit.
+   *
+   * It says what it will do next, not what it is: "Não girar a tela" while the
+   * app is still allowed to ask for landscape. A button that announces its own
+   * current state reads as a label and gets pressed by mistake.
+   */
+  const rotateButton = (
+    <CookButton
+      label={orientation.mode === 'auto' ? 'Não girar a tela' : 'Girar a tela automaticamente'}
+      onClick={orientation.toggle}
+      pressed={orientation.mode === 'auto'}
+    >
+      {orientation.mode === 'auto' ? (
+        <RotateCw aria-hidden className="size-[18px]" />
+      ) : (
+        <Smartphone aria-hidden className="size-[18px]" />
+      )}
+    </CookButton>
+  );
+
+  const timerButton = hasTimer ? (
+    <CookButton
+      label={timer.isRunning ? 'Pausar' : 'Iniciar'}
+      onClick={() => {
+        primeAudio();
+        if (isThisStepsTimer && timer.isRunning) timer.pause();
+        else if (isThisStepsTimer && timer.pausedRemaining !== null) timer.resume();
+        else timer.start(step.id, step.durationSeconds!);
+      }}
+    >
+      {timer.isRunning ? (
+        <Pause aria-hidden className="size-[18px]" />
+      ) : (
+        <Play aria-hidden className="size-[18px]" />
+      )}
+    </CookButton>
+  ) : null;
+
+  const soundButton = (
+    <CookButton
+      label={wantsSound ? 'Desligar o som' : 'Ligar o som'}
+      onClick={() => setSoundOn((on) => !on)}
+    >
+      {wantsSound ? (
+        <Volume2 aria-hidden className="size-[18px]" />
+      ) : (
+        <VolumeX aria-hidden className="size-[18px]" />
+      )}
+    </CookButton>
+  );
+
+  const exitButton = (
+    <CookButton
+      label="Sair"
+      onClick={() => void navigate(recipeRoute)}
+      className="border-rouge text-rouge"
+    >
+      <X aria-hidden className="size-[18px]" />
+    </CookButton>
+  );
+
+  /** The step after this one, previewed at the bottom of the portrait layout. */
+  const nextStep = steps[index + 1];
+
+  const stepBody = (
+    <>
+      {step.verb ? (
+        <p className="font-mono text-[13px] tracking-[0.2em] text-rouge uppercase">{step.verb}</p>
+      ) : null}
+
+      {/* Scales with viewport height rather than sitting at a fixed 38px:
+          the screen must never clip an instruction someone is following. */}
+      <p
+        className="mt-3 font-display leading-[1.08] font-bold tracking-[-0.03em] text-ink"
+        style={{ fontSize: 'clamp(22px, 6.4vh, 38px)' }}
+      >
+        {step.instruction}
+      </p>
+
+      {step.dials.length > 0 || hasTimer ? (
+        <div className="mt-6 flex flex-wrap items-start gap-[18px]">
+          {hasTimer ? (
+            <Dial
+              kind="tempo"
+              value={formatTimer(isThisStepsTimer ? timer.remaining() : step.durationSeconds!)}
+              sub="min · seg"
+              shape={theme.shape}
+              accent={theme.colorVar}
+            />
+          ) : null}
+          {step.dials
+            .filter((dial) => dial.kind !== 'tempo' || !hasTimer)
+            .map((dial) => (
+              <Dial
+                key={dial.kind}
+                kind={dial.kind}
+                value={dial.valueText ?? String(dial.valueNum ?? '—')}
+                sub={dial.subLabel}
+                shape={theme.shape}
+                accent={theme.colorVar}
+              />
+            ))}
+        </div>
+      ) : null}
+
+      {step.alertText ? (
+        <p className="mt-5 max-w-[52ch] text-small text-ink-muted">{step.alertText}</p>
+      ) : null}
+    </>
+  );
+
+  const advanceButton = (
+    <button
+      type="button"
+      onClick={advance}
+      className="h-[46px] flex-none rounded-lg bg-graphite-900 px-6 text-[14px] font-semibold text-porcelain-100"
+    >
+      {isLast ? 'Concluir' : 'Avançar'}
+    </button>
+  );
+
+  /* ── Portrait ─────────────────────────────────────────────────────────
+     A phone propped against a jar stands upright. Same step, same timer,
+     same dials — stacked, with the next step named at the bottom so the
+     cook can see what is coming without leaving the one they are on. */
+  if (orientation.isPortrait) {
+    return (
+      <FullScreen>
+        <header className="flex flex-none items-center gap-3 border-b border-hairline px-4 py-3">
+          <img src={asset('brand/badge.png')} alt="" className="size-9 flex-none rounded-pill" />
+          <span className="min-w-0 flex-1 truncate font-display text-[17px] font-bold tracking-[-0.025em]">
+            {data.title}
+          </span>
+          {rotateButton}
+          {exitButton}
+        </header>
+
+        <div className="flex flex-none items-center gap-3 border-b border-hairline px-4 py-2.5">
+          {equipmentTag}
+          {counter}
+          <span className="flex-1" />
+          {timerButton}
+          {soundButton}
+        </div>
+
+        <main className="flex min-h-0 flex-1 flex-col overflow-y-auto overscroll-contain px-5 py-5">
+          {stepBody}
+
+          {/* Only when there is something to draw. A "bancada" step has no
+              appliance outline, and reserving the space anyway left half a
+              phone screen blank under two lines of text. */}
+          {theme.vessel !== 'none' ? (
+            <div className="mt-6 flex flex-1 items-center justify-center text-ink/15">
+              <Vessel kind={theme.vessel} className="size-full max-h-56 max-w-56" />
+            </div>
+          ) : null}
+        </main>
+
+        <footer className="flex-none border-t border-hairline px-4 pt-3 pb-4">
+          {nextStep ? (
+            <p className="mb-3 truncate text-small text-ink-muted">
+              <span className="font-mono text-[10px] tracking-[0.14em] uppercase">A seguir</span>{' '}
+              {nextStep.verb ? `${nextStep.verb} · ` : ''}
+              {nextStep.instruction}
+            </p>
+          ) : null}
+
+          <div className="flex items-center gap-3">
+            <CookButton
+              label="Etapa anterior"
+              onClick={() => goTo(index - 1)}
+              disabled={index === 0}
+              className="size-[46px]"
+            >
+              <ChevronLeft aria-hidden className="size-5" />
+            </CookButton>
+            <button
+              type="button"
+              onClick={advance}
+              className="h-[46px] flex-1 rounded-lg bg-graphite-900 text-[15px] font-semibold text-porcelain-100"
+            >
+              {isLast ? 'Concluir' : 'Avançar'}
+            </button>
+          </div>
+        </footer>
+
+        {doneOverlay}
+      </FullScreen>
+    );
+  }
+
   return (
-    <LandscapeScreen>
+    <FullScreen>
       {/* ── Top bar ──────────────────────────────────────────────────── */}
       <header className="flex flex-none items-center gap-3.5 border-b border-hairline py-3.5 pr-5 pl-5">
         <img src={asset('brand/badge.png')} alt="" className="size-10 flex-none rounded-pill" />
@@ -145,17 +413,10 @@ export default function CookScreen() {
           <span className="truncate font-display text-[19px] font-bold tracking-[-0.025em]">
             {data.title}
           </span>
-          <span
-            className="flex-none rounded-xs border px-2 py-1 font-mono text-[10px] tracking-[0.14em] uppercase"
-            style={{ color: theme.colorVar, borderColor: theme.colorVar }}
-          >
-            {theme.short}
-          </span>
+          {equipmentTag}
         </div>
 
-        <span className="mr-1.5 flex-none font-mono text-[13px] tracking-[0.14em] text-ink-muted">
-          {String(index + 1).padStart(2, '0')} / {String(steps.length).padStart(2, '0')}
-        </span>
+        <span className="mr-1.5">{counter}</span>
 
         <div className="flex flex-none items-center gap-2">
           <CookButton label="Etapa anterior" onClick={() => goTo(index - 1)} disabled={index === 0}>
@@ -165,42 +426,10 @@ export default function CookScreen() {
             <ChevronRight aria-hidden className="size-[18px]" />
           </CookButton>
 
-          {hasTimer ? (
-            <CookButton
-              label={timer.isRunning ? 'Pausar' : 'Iniciar'}
-              onClick={() => {
-                primeAudio();
-                if (isThisStepsTimer && timer.isRunning) timer.pause();
-                else if (isThisStepsTimer && timer.pausedRemaining !== null) timer.resume();
-                else timer.start(step.id, step.durationSeconds!);
-              }}
-            >
-              {timer.isRunning ? (
-                <Pause aria-hidden className="size-[18px]" />
-              ) : (
-                <Play aria-hidden className="size-[18px]" />
-              )}
-            </CookButton>
-          ) : null}
-
-          <CookButton
-            label={wantsSound ? 'Desligar o som' : 'Ligar o som'}
-            onClick={() => setSoundOn((on) => !on)}
-          >
-            {wantsSound ? (
-              <Volume2 aria-hidden className="size-[18px]" />
-            ) : (
-              <VolumeX aria-hidden className="size-[18px]" />
-            )}
-          </CookButton>
-
-          <CookButton
-            label="Sair"
-            onClick={() => void navigate(recipeRoute)}
-            className="border-rouge text-rouge"
-          >
-            <X aria-hidden className="size-[18px]" />
-          </CookButton>
+          {timerButton}
+          {soundButton}
+          {rotateButton}
+          {exitButton}
         </div>
       </header>
 
@@ -213,54 +442,7 @@ export default function CookScreen() {
           a long one scrolls instead of losing its first line. */}
       <main className="flex min-h-0 flex-1 gap-6 overflow-hidden px-10">
         <div className="min-w-0 flex-1 overflow-y-auto overscroll-contain">
-          <div className="flex min-h-full flex-col justify-center py-4">
-            {step.verb ? (
-              <p className="font-mono text-[13px] tracking-[0.2em] text-rouge uppercase">
-                {step.verb}
-              </p>
-            ) : null}
-
-            {/* Scales with viewport height rather than sitting at a fixed 38px:
-              the screen must never clip an instruction someone is following. */}
-            <p
-              className="mt-3 font-display leading-[1.08] font-bold tracking-[-0.03em] text-ink"
-              style={{ fontSize: 'clamp(22px, 6.4vh, 38px)' }}
-            >
-              {step.instruction}
-            </p>
-
-            {step.dials.length > 0 || hasTimer ? (
-              <div className="mt-6 flex items-start gap-[18px]">
-                {hasTimer ? (
-                  <Dial
-                    kind="tempo"
-                    value={formatTimer(
-                      isThisStepsTimer ? timer.remaining() : step.durationSeconds!,
-                    )}
-                    sub="min · seg"
-                    shape={theme.shape}
-                    accent={theme.colorVar}
-                  />
-                ) : null}
-                {step.dials
-                  .filter((dial) => dial.kind !== 'tempo' || !hasTimer)
-                  .map((dial) => (
-                    <Dial
-                      key={dial.kind}
-                      kind={dial.kind}
-                      value={dial.valueText ?? String(dial.valueNum ?? '—')}
-                      sub={dial.subLabel}
-                      shape={theme.shape}
-                      accent={theme.colorVar}
-                    />
-                  ))}
-              </div>
-            ) : null}
-
-            {step.alertText ? (
-              <p className="mt-5 max-w-[52ch] text-small text-ink-muted">{step.alertText}</p>
-            ) : null}
-          </div>
+          <div className="flex min-h-full flex-col justify-center py-4">{stepBody}</div>
         </div>
 
         {/* The appliance outline gives way before the instruction does: it is
@@ -277,61 +459,11 @@ export default function CookScreen() {
           targets are not a control, and the header already carries "01 / 06"
           plus the two chevrons. One button, one job. */}
       <footer className="flex flex-none items-center justify-end border-t border-hairline px-5 pt-3.5 pb-4.5">
-        <button
-          type="button"
-          onClick={advance}
-          className="h-[46px] flex-none rounded-lg bg-graphite-900 px-6 text-[14px] font-semibold text-porcelain-100"
-        >
-          {isLast ? 'Concluir' : 'Avançar'}
-        </button>
+        {advanceButton}
       </footer>
 
-      {/* ── Bom apetite ──────────────────────────────────────────────── */}
-      {isDone ? (
-        <div className="animate-fade absolute inset-0 flex items-center justify-center bg-base/85 backdrop-blur-[14px]">
-          <div className="flex max-w-[460px] items-center gap-5 rounded-xl border border-hairline bg-raised px-7 py-6.5">
-            <img src={asset('brand/badge.png')} alt="" className="size-20 flex-none rounded-pill" />
-            <div>
-              <span className="sn-datalabel" data-tone="signal">
-                Concluído
-              </span>
-              <p className="mt-3 font-display text-[28px] leading-[1.1] font-bold tracking-[-0.03em] text-ink">
-                Bom apetite.
-              </p>
-              <p className="mt-2.5 mb-4.5 text-small leading-[1.6] text-ink-muted">
-                {path?.name} · {steps.length} etapas
-                {data.variants[profile?.chef_mode ?? 'normal']?.kcal
-                  ? ` · ${Math.round(data.variants[profile?.chef_mode ?? 'normal']!.kcal!)} kcal por porção`
-                  : ''}
-              </p>
-              <div className="flex gap-2">
-                <button
-                  type="button"
-                  onClick={() => void navigate(recipeRoute, { replace: true })}
-                  className="h-[42px] rounded-lg bg-graphite-900 px-[18px] text-[14px] font-semibold text-porcelain-100"
-                >
-                  Voltar à receita
-                </button>
-                {/* This used to only navigate. A button that says "Salvar" and
-                    writes nothing is worse than no button: the cook believes
-                    the recipe is in their book and finds it empty later. */}
-                <button
-                  type="button"
-                  disabled={saveToBook.isPending}
-                  onClick={() => {
-                    if (!isInBook) saveToBook.mutate({ recipe: data, next: true });
-                    void navigate(routes.book);
-                  }}
-                  className="h-[42px] rounded-lg border border-strong px-4 text-[14px] font-semibold text-ink disabled:opacity-45"
-                >
-                  {isInBook ? 'Ver no livro' : 'Salvar no livro'}
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      ) : null}
-    </LandscapeScreen>
+      {doneOverlay}
+    </FullScreen>
   );
 }
 
@@ -340,12 +472,15 @@ function CookButton({
   label,
   onClick,
   disabled,
+  pressed,
   className,
   children,
 }: {
   label: string;
   onClick: () => void;
   disabled?: boolean;
+  /** Renders the control as a switch rather than as a one-shot action. */
+  pressed?: boolean;
   className?: string;
   children: React.ReactNode;
 }) {
@@ -353,11 +488,13 @@ function CookButton({
     <button
       type="button"
       aria-label={label}
+      aria-pressed={pressed}
       onClick={onClick}
       disabled={disabled}
       className={cn(
-        'flex size-9 items-center justify-center rounded-lg border border-hairline text-ink',
+        'flex size-9 flex-none items-center justify-center rounded-lg border border-hairline text-ink',
         'transition-colors duration-[140ms] ease-signal disabled:opacity-35',
+        pressed === false && 'border-dashed text-ink-muted',
         className,
       )}
     >

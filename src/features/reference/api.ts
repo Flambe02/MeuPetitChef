@@ -24,6 +24,7 @@ import {
   type RecipeFacts,
   type TechniqueFact,
 } from '@/lib/recipe-import/reference';
+import { addFavorite } from '@/features/favorites/api';
 import type { ImportOutcome } from '@/features/import/api';
 import type { ValidationResult } from '@/lib/recipe-import/types';
 import { generateRecipe, saveGeneratedDraft, type GeneratedRecipe } from '@/features/generate/api';
@@ -135,6 +136,13 @@ export async function createVersionFromImport(
   }
 
   const saved = await saveGeneratedDraft(userId, generated, input.mode);
+
+  // Straight into the book. A recipe the chef wrote for you, that you asked to
+  // cook, is yours — leaving it addressable only by the URL you were just
+  // redirected to means it is gone the moment you close the tab, and "Meu
+  // livro" would keep saying you have none.
+  await addFavorite(userId, saved.id);
+
   return { recipe: saved, facts, originality };
 }
 

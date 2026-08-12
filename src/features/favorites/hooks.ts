@@ -4,7 +4,12 @@ import { useSession } from '@/features/auth/session-context';
 import type { RecipeCard } from '@/domain/types';
 import { keys } from '@/lib/query/keys';
 
-import { addFavorite, listCollections, listFavorites, removeFavorite } from './api';
+import {
+  addFavorite,
+  listCollectionsWithCounts,
+  listFavorites,
+  removeFavorite,
+} from './api';
 
 export function useFavorites() {
   const { user } = useSession();
@@ -16,12 +21,13 @@ export function useFavorites() {
   });
 }
 
+/** The collections, each carrying how many recipes it holds. */
 export function useCollections() {
   const { user } = useSession();
   const userId = user?.id;
   return useQuery({
     queryKey: keys.collections.list(userId ?? ''),
-    queryFn: () => listCollections(userId!),
+    queryFn: () => listCollectionsWithCounts(userId!),
     enabled: Boolean(userId),
   });
 }

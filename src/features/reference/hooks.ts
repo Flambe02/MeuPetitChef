@@ -24,6 +24,8 @@ export function useVersionFromImport() {
     mutationFn: (input) => createVersionFromImport(user!.id, input),
     onSuccess: async () => {
       await client.invalidateQueries({ queryKey: keys.recipes.all });
+      // It lands in the book on the way out, so the book's counts are stale.
+      await client.invalidateQueries({ queryKey: keys.favorites.all });
     },
   });
 }

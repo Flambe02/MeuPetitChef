@@ -56,15 +56,24 @@ export default function BookScreen() {
         />
       ) : null}
 
+      {/* Name on the left, count on the right. The emoji used to sit where the
+          count is now, which left the one question the list has to answer —
+          "is there anything in it?" — unanswered. It moved next to the name,
+          where it belongs. */}
       <div className="flex flex-col gap-2">
         {collections.data?.map((collection) => (
           <Link
             key={collection.id}
-            to={routes.book}
+            to={routes.favorites}
             className="flex items-center justify-between gap-3 rounded-lg border border-hairline bg-raised p-4 no-underline"
           >
-            <span className="text-body font-medium text-ink">{collection.name}</span>
-            <span className="font-mono text-[13px] text-ink-muted">{collection.emoji ?? ''}</span>
+            <span className="min-w-0 truncate text-body font-medium text-ink">
+              {collection.emoji ? `${collection.emoji} ` : ''}
+              {collection.name}
+            </span>
+            <span className="flex-none font-mono text-[13px] text-ink-muted">
+              {collection.recipeCount}
+            </span>
           </Link>
         ))}
       </div>
