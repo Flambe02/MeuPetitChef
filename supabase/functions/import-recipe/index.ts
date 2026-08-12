@@ -382,6 +382,28 @@ porque o aplicativo lê esses números para montar o cronômetro.
 prato pronto sem preparo, um texto qualquer). Nesse caso os outros campos podem
 vir vazios.`;
 
+/**
+ * The same reading, from screenshots instead of text.
+ *
+ * A print of a post carries the caption as pixels, and often carries it *split*
+ * across several prints because the caption did not fit one screen. So the
+ * captures go in one request, in the order the person picked them, and the
+ * model is told to treat them as one continuous text — otherwise it answers
+ * three half-recipes for three prints of one recipe.
+ */
+const IMAGE_PROMPT = `As imagens são capturas de tela de um post de receita, na ordem em que foram
+tiradas. Leia TODAS como um texto único e contínuo: uma legenda longa costuma
+ser cortada em várias capturas, e a lista de ingredientes de uma pode continuar
+na seguinte. Não devolva uma receita por imagem — devolva uma só.
+
+Leia o que estiver escrito na tela: a legenda, o texto sobre o vídeo, uma lista
+de ingredientes fotografada. Ignore o que é interface do aplicativo — nome do
+perfil, curtidas, comentários, botões, horário do celular, barra de navegação.
+
+O que estiver ilegível, cortado ou tapado não existe: deixe em branco e cite em
+"missing". Não complete um ingrediente pela metade nem adivinhe um número
+borrado — quem vai cozinhar confia no que está aí.`;
+
 interface Extraction {
   is_recipe: boolean;
   title: string | null;
@@ -394,7 +416,16 @@ interface Extraction {
   missing: string[];
 }
 
-async function extractRecipe(text: string, openaiKey: string): Promise<Extraction> {
+/** A text message, or a text message followed by the captures. */
+type UserContent = string | ({ type: 'text'; text: string } | ImagePart)[];
+interface ImagePart {
+  type: 'image_url';
+  image_url: { url: string; detail: 'high' };
+}
+
+async function extractRecipe(content: UserContent, openaiKey: string): Promise<Extraction> {
+  const hasImages = Array.isArray(content);
+
   const upstream = await fetch(OPENAI_URL, {
     method: 'POST',
     headers: { Authorization: `Bearer ${openaiKey}`, 'Content-Type': 'application/json' },
@@ -404,7 +435,8 @@ async function extractRecipe(text: string, openaiKey: string): Promise<Extractio
       temperature: 0,
       messages: [
         { role: 'system', content: EXTRACTION_PROMPT },
-        { role: 'user', content: text },
+        ...(hasImages ? [{ role: 'system', content: IMAGE_PROMPT }] : []),
+        { role: 'user', content },
       ],
       response_format: {
         type: 'json_schema',
@@ -464,10 +496,47 @@ function toSchemaOrg(extraction: Extraction, source: { url: string | null; image
  * ------------------------------------------------------------------------- */
 
 interface RequestBody {
-  /** A URL to fetch. Omit when sending `text`. */
+  /** A URL to fetch. Omit when sending `text` or `images`. */
   url?: string;
   /** A caption or recipe pasted by hand — the way in when a page is gated. */
   text?: string;
+  /** Screenshots of a post, as `data:image/…;base64,…`, in reading order. */
+  images?: string[];
+}
+
+/** Only real, inline images. A `data:` URL cannot point anywhere else. */
+const DATA_IMAGE = /^data:image\/(png|jpeg|jpg|webp|heic);base64,[A-Za-z0-9+/=]+$/;
+const MAX_IMAGES = 6;
+const MAX_IMAGE_BYTES = 8_000_000;
+
+/**
+ * Validates the captures before a single token is spent.
+ *
+ * `data:` only, and deliberately so: accepting an `https://` image here would
+ * hand back the arbitrary-fetch hole the allowlist exists to close, this time
+ * through the model's own image loader.
+ */
+function readImages(values: unknown): string[] {
+  if (!Array.isArray(values)) return [];
+
+  const images = values.filter((value): value is string => typeof value === 'string');
+  if (images.length === 0) return [];
+  if (images.length > MAX_IMAGES) {
+    throw new HttpError(400, `Envie no máximo ${MAX_IMAGES} capturas de uma vez.`);
+  }
+
+  let total = 0;
+  for (const image of images) {
+    if (!DATA_IMAGE.test(image)) {
+      throw new HttpError(400, 'Uma das capturas não é uma imagem válida.');
+    }
+    total += image.length;
+  }
+  if (total > MAX_IMAGE_BYTES) {
+    throw new HttpError(413, 'As capturas somam peso demais. Envie menos imagens de cada vez.');
+  }
+
+  return images;
 }
 
 Deno.serve(async (request: Request): Promise<Response> => {
@@ -501,10 +570,45 @@ Deno.serve(async (request: Request): Promise<Response> => {
   const pastedText = (body.text ?? '').trim();
 
   try {
+    /* ── Screenshots ────────────────────────────────────────────────────── */
+    // First, and on purpose: someone who sent captures sent them *because* the
+    // link would not open. Falling back to fetching the URL they also pasted
+    // would answer a question they had already given up on.
+    const images = readImages(body.images);
+    if (images.length > 0) {
+      if (!openaiKey) return json({ error: 'A leitura por IA ainda não foi configurada.' }, 503);
+
+      const extraction = await extractRecipe(
+        [
+          {
+            type: 'text',
+            text: pastedText
+              ? `Contexto escrito pela pessoa: ${pastedText.slice(0, 2000)}`
+              : 'Leia a receita destas capturas.',
+          },
+          ...images.map(
+            (image): ImagePart => ({ type: 'image_url', image_url: { url: image, detail: 'high' } }),
+          ),
+        ],
+        openaiKey,
+      );
+
+      if (!extraction.is_recipe) {
+        return json({ error: 'Não encontrei uma receita nessas capturas.' }, 422);
+      }
+      return json({
+        kind: 'structured',
+        provider: 'social',
+        finalUrl: rawUrl || null,
+        recipe: toSchemaOrg(extraction, { url: rawUrl || null, image: null }),
+        missing: extraction.missing,
+      });
+    }
+
     /* ── A pasted caption, no fetching involved ─────────────────────────── */
     if (!rawUrl) {
       if (pastedText.length < 40) {
-        return json({ error: 'Cole o endereço da receita ou o texto dela.' }, 400);
+        return json({ error: 'Cole o endereço da receita, o texto dela, ou envie capturas.' }, 400);
       }
       if (!openaiKey) return json({ error: 'A leitura por IA ainda não foi configurada.' }, 503);
 

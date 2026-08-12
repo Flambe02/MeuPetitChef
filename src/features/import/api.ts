@@ -34,6 +34,8 @@ export interface AnalyzeInput {
   url: string;
   /** Optional. A page source, a JSON export, or a caption copied by hand. */
   source: string;
+  /** Screenshots of a post, as data URLs, in reading order. */
+  images?: string[];
   provider?: ProviderId;
 }
 
@@ -56,24 +58,41 @@ function isHtml(source: string): boolean {
  * Saving is a second, explicit call, because the whole point of the review
  * screen is that a human sees the recipe before it exists.
  *
- * Three ways in, in the order the screen offers them:
+ * Four ways in, in the order the screen offers them:
  *
  *   1. **a URL alone** — fetched by the Edge Function. A recipe site comes back
  *      as HTML and is parsed here; a social post comes back already read into a
  *      `schema.org/Recipe`.
- *   2. **pasted markup or JSON** — parsed locally, exactly as before. Still the
+ *   2. **screenshots** — prints of a post, read the same way. Checked first:
+ *      someone who took captures took them *because* the link would not open,
+ *      so falling back to fetching would answer a question already given up on.
+ *   3. **pasted markup or JSON** — parsed locally, exactly as before. Still the
  *      answer for a Cookidoo page only its subscriber can open.
- *   3. **pasted prose** — a caption copied out of a post that would not open.
+ *   4. **pasted prose** — a caption copied out of a post that would not open.
  *      There is nothing to parse in prose, so it takes the same reading pass a
  *      fetched caption does.
  */
 export async function analyzeImport(input: AnalyzeInput): Promise<ImportOutcome> {
   const url = input.url.trim();
   const source = input.source.trim();
+  const images = input.images ?? [];
+
+  if (images.length > 0) {
+    const fetched = await fetchSource({ images, ...(source ? { text: source } : {}), url });
+    return withSourceWarnings(
+      await runImport({
+        provider: fetched.provider,
+        url: url || null,
+        structuredData: fetched.structuredData,
+        parseHtml,
+      }),
+      fetched.missing,
+    );
+  }
 
   if (!source) {
     if (!url) {
-      throw new DataError('Cole o endereço da receita, ou o texto dela.');
+      throw new DataError('Cole o endereço da receita, o texto dela, ou envie capturas de tela.');
     }
     const fetched = await fetchSource({ url });
     return withSourceWarnings(

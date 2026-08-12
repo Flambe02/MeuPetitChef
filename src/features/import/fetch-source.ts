@@ -44,7 +44,11 @@ interface FunctionResponse {
  * privado", "o site recusou o acesso" — and are surfaced verbatim, because each
  * one tells the person a different thing to do next.
  */
-export async function fetchSource(input: { url?: string; text?: string }): Promise<FetchedSource> {
+export async function fetchSource(input: {
+  url?: string;
+  text?: string;
+  images?: string[];
+}): Promise<FetchedSource> {
   // Cast at the boundary: `functions.invoke` types its payload as `any`, and
   // destructuring that into locals launders the unsafety silently.
   const { data, error } = (await supabase.functions.invoke('import-recipe', {

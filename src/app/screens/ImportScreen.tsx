@@ -12,6 +12,12 @@ import { EQUIPMENT_THEME } from '@/domain/equipment';
 import { useCreateOwnVersion } from '@/features/reference/hooks';
 import { useEquipment } from '@/features/profile/hooks';
 import { useAnalyzeImport, useImports, useSaveImport } from '@/features/import/hooks';
+import {
+  MAX_IMAGES,
+  MAX_TOTAL_BYTES,
+  prepareImage,
+  type PreparedImage,
+} from '@/features/import/images';
 import { formatDuration } from '@/lib/recipe-import/duration';
 import { detectProvider } from '@/lib/recipe-import/registry';
 import type { ProviderId } from '@/lib/recipe-import/types';
@@ -48,6 +54,8 @@ export default function ImportScreen() {
   const [url, setUrl] = useState('');
   const [source, setSource] = useState('');
   const [provider, setProvider] = useState<ProviderId | null>(null);
+  const [images, setImages] = useState<PreparedImage[]>([]);
+  const [imageError, setImageError] = useState<string | null>(null);
 
   const analyze = useAnalyzeImport();
   const save = useSaveImport();
@@ -68,6 +76,35 @@ export default function ImportScreen() {
     analyze.reset();
     save.reset();
     own.reset();
+  };
+
+  /**
+   * Captures are added to what is already there, not swapped for it: a caption
+   * spread over three screens is three trips to the picker on most phones, and
+   * replacing the selection each time would make that impossible.
+   */
+  const addImages = async (files: FileList | null) => {
+    if (!files || files.length === 0) return;
+    reset();
+    setImageError(null);
+
+    const room = MAX_IMAGES - images.length;
+    if (room <= 0) {
+      setImageError(`No máximo ${MAX_IMAGES} capturas.`);
+      return;
+    }
+
+    try {
+      const prepared = await Promise.all([...files].slice(0, room).map(prepareImage));
+      const next = [...images, ...prepared];
+      if (next.reduce((sum, image) => sum + image.bytes, 0) > MAX_TOTAL_BYTES) {
+        setImageError('As capturas somam peso demais. Tente com menos imagens.');
+        return;
+      }
+      setImages(next);
+    } catch {
+      setImageError('Não consegui ler uma dessas imagens.');
+    }
   };
 
   return (
@@ -138,25 +175,78 @@ export default function ImportScreen() {
             className="mt-1 w-full rounded-lg border border-hairline bg-transparent p-3 font-mono text-[12px] text-ink outline-none placeholder:text-ink-muted"
           />
 
+          {/* ── Screenshots ──────────────────────────────────────────── */}
+          {/* The way in that always works. A private post has no link worth
+              pasting and no caption to copy, but it is right there on screen —
+              so print it, one screen per print, and send the lot. */}
+          <label className="mt-4 block text-small text-ink-muted" htmlFor="import-images">
+            Ou envie capturas de tela do post
+          </label>
+          <input
+            id="import-images"
+            type="file"
+            accept="image/*"
+            multiple
+            onChange={(event) => {
+              void addImages(event.target.files);
+              // Cleared so picking the same file twice still fires a change.
+              event.target.value = '';
+            }}
+            className="mt-1 block w-full text-small text-ink-muted file:mr-3 file:rounded-lg file:border file:border-hairline file:bg-transparent file:px-3 file:py-2 file:text-small file:font-semibold file:text-ink"
+          />
+
+          {images.length > 0 ? (
+            <ul className="mt-3 flex flex-wrap gap-2">
+              {images.map((image, index) => (
+                <li key={`${image.name}-${index}`} className="relative">
+                  <img
+                    src={image.dataUrl}
+                    alt=""
+                    className="size-20 rounded-lg border border-hairline object-cover"
+                  />
+                  <span className="absolute top-1 left-1 rounded-xs bg-graphite-900/80 px-1 font-mono text-[10px] text-porcelain-100">
+                    {index + 1}
+                  </span>
+                  <button
+                    type="button"
+                    aria-label={`Remover a captura ${index + 1}`}
+                    onClick={() => {
+                      setImages(images.filter((_, position) => position !== index));
+                      reset();
+                    }}
+                    className="absolute -top-1.5 -right-1.5 flex size-6 items-center justify-center rounded-pill border border-hairline bg-raised text-ink"
+                  >
+                    <X aria-hidden className="size-3.5" />
+                  </button>
+                </li>
+              ))}
+            </ul>
+          ) : null}
+
+          {imageError ? <p className="mt-2 text-small text-rouge">{imageError}</p> : null}
+
           <p className="mt-2 text-small text-ink-muted">
-            {source.trim()
-              ? 'Vamos ler o texto colado — o endereço serve só para registrar a origem.'
-              : 'Buscamos a página para você. Posts privados ou páginas que pedem login não abrem: nesses casos, copie o texto e cole acima.'}
+            {images.length > 0
+              ? 'Vamos ler as capturas na ordem em que aparecem — uma legenda cortada em várias telas vira uma receita só.'
+              : source.trim()
+                ? 'Vamos ler o texto colado — o endereço serve só para registrar a origem.'
+                : 'Buscamos a página para você. Posts privados ou páginas que pedem login não abrem: nesses casos, mande capturas ou cole o texto.'}
           </p>
 
           <Button
             className="mt-4"
             block
-            disabled={analyze.isPending || (!source.trim() && !url.trim())}
+            disabled={analyze.isPending || (!source.trim() && !url.trim() && images.length === 0)}
             onClick={() =>
               analyze.mutate({
                 url: url.trim(),
                 source,
+                images: images.map((image) => image.dataUrl),
                 ...(activeProvider ? { provider: activeProvider } : {}),
               })
             }
           >
-            {analyze.isPending ? 'Buscando…' : 'Buscar receita'}
+            {analyze.isPending ? 'Lendo…' : 'Buscar receita'}
           </Button>
 
           {analyze.isError ? (
