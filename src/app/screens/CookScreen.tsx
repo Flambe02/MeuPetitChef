@@ -5,7 +5,6 @@ import { useNavigate, useParams, useSearchParams } from 'react-router';
 import { routes } from '@/app/routes';
 import { LandscapeScreen } from '@/components/LandscapeScreen';
 import { Dial } from '@/components/cook/Dial';
-import { StepProgress } from '@/components/cook/StepProgress';
 import { Vessel } from '@/components/cook/Vessel';
 import { EmptyState, ErrorState, Spinner } from '@/components/ui/states';
 import { EQUIPMENT_THEME } from '@/domain/equipment';
@@ -273,9 +272,11 @@ export default function CookScreen() {
         </div>
       </main>
 
-      {/* ── Track + advance ──────────────────────────────────────────── */}
-      <footer className="flex flex-none items-center gap-[22px] border-t border-hairline px-5 pt-3.5 pb-4.5">
-        <StepProgress steps={steps} current={index} onSelect={goTo} />
+      {/* ── Advance ──────────────────────────────────────────────────── */}
+      {/* The dash track that used to sit here is gone: with wet hands, 3px
+          targets are not a control, and the header already carries "01 / 06"
+          plus the two chevrons. One button, one job. */}
+      <footer className="flex flex-none items-center justify-end border-t border-hairline px-5 pt-3.5 pb-4.5">
         <button
           type="button"
           onClick={advance}

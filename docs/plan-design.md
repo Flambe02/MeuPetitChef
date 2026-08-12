@@ -52,7 +52,7 @@ la phase 2, sous peine de réécrire trois fois les mêmes cadrans.
 | 1.1 | `equipmentAccent(equipment)` → renvoie le token `--color-eq-*`. Étendre `EQUIPMENT_THEME` plutôt que créer une table parallèle | cook, recipe, spread |
 | 1.2 | `<LandscapeScreen>` : coquille plein écran, hors `AppShell`, sans `max-w-app`                                                  | cook, spread         |
 | 1.3 | `<Dial>` : cercle (Thermomix) ou carré contourné (Forno), icône + label mono + valeur display + sous-label                     | cook                 |
-| 1.4 | `<StepProgress>` : les tirets du bas, teintés par l'appareil de chaque étape                                                   | cook                 |
+| 1.4 | ~~`<StepProgress>` : les tirets du bas~~ — retiré à l'usage : 3 px de cible avec les mains mouillées, le « 01 / 06 » de l'en-tête suffit | cook                 |
 | 1.5 | Illustrations d'appareil en SVG inline (bol Thermomix, four)                                                                   | cook                 |
 
 ---

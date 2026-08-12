@@ -131,7 +131,12 @@ export default function HomeScreen() {
   return (
     <div className="animate-in">
       {/* Header — the one graphite band on an otherwise porcelain screen. */}
-      <header className="safe-top relative overflow-hidden bg-graphite-900 px-5 pt-1.5 pb-[30px] text-porcelain-100">
+      {/* `safe-top` sets padding-top outright, so it silently ate the `pt-1.5`
+          that used to sit next to it: on any screen without a notch the inset
+          is 0px, and the wordmark ended up flush against the top edge. Same
+          folding as OnboardingScreen — inset *plus* the spacing, one
+          declaration. */}
+      <header className="relative overflow-hidden bg-graphite-900 px-5 pt-[calc(env(safe-area-inset-top)+0.75rem)] pb-[30px] text-porcelain-100">
         <div className="flex items-start justify-between gap-3">
           {/* Badge + stacked lockup. The wordmark is set, not drawn — the brand
               guideline is explicit that the identity is the name, tight. */}
@@ -149,14 +154,22 @@ export default function HomeScreen() {
               }}
               disabled={updateProfile.isPending}
               aria-label={`Chef ${CHEF_MODES.find((c) => c.id === mode)?.label ?? ''} — tocar para trocar`}
-              className="size-14 shrink-0 overflow-hidden rounded-pill bg-graphite-700"
+              className="relative size-14 shrink-0 overflow-hidden rounded-pill bg-graphite-700"
             >
-              {/* `object-top`: the illustration is a full-body character, so
-                  anchoring it anywhere else crops to the chef's feet. */}
+              {/* The illustrations are full-body characters (≈180×360) and the
+                  button is a 56px circle, so the artwork has to be framed, not
+                  fitted. Sizing by height alone — 250% of the circle, centred
+                  horizontally — crops to the head and chef's whites and takes
+                  the three modes' differing widths in its stride.
+
+                  The 8% offset is the whole point: anchored flush to the top,
+                  the toque touches the edge exactly where the round mask has
+                  already started cutting inwards, and the hat loses its
+                  corners. Four pixels of headroom put it back. */}
               <img
                 src={asset(`chefs/chef-${mode}.png`)}
                 alt=""
-                className="size-full scale-[1.7] object-contain object-top"
+                className="absolute top-[7%] left-1/2 h-[210%] max-w-none -translate-x-1/2"
               />
             </button>
             <span className="leading-none">
