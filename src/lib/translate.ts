@@ -54,13 +54,22 @@ export function guardDomAgainstTranslation(): void {
   if (guarded || typeof Node === 'undefined') return;
   guarded = true;
 
-  // Bound at capture rather than kept as loose prototype references: an
-  // unbound method called later with the wrong `this` is precisely what the
-  // lint rule is warning about, and here `this` is the node being patched.
+  // Captured as values, not as `Node.prototype.removeChild` / `insertBefore`
+  // lookups: the latter would re-read the property at call time, which —
+  // once the two assignments below have run — is the patched function
+  // itself. That turns every "native" call into a call to the patch,
+  // recursing until the stack overflows. Each is invoked only via
+  // `.call(parent, ...)` below, so the "wrong `this`" scenario
+  // unbound-method guards against cannot happen here.
+  // eslint-disable-next-line @typescript-eslint/unbound-method
+  const originalRemoveChild = Node.prototype.removeChild;
+  // eslint-disable-next-line @typescript-eslint/unbound-method
+  const originalInsertBefore = Node.prototype.insertBefore;
+
   const nativeRemoveChild = <T extends Node>(parent: Node, child: T): T =>
-    Node.prototype.removeChild.call(parent, child) as T;
+    originalRemoveChild.call(parent, child) as T;
   const nativeInsertBefore = <T extends Node>(parent: Node, node: T, reference: Node | null): T =>
-    Node.prototype.insertBefore.call(parent, node, reference) as T;
+    originalInsertBefore.call(parent, node, reference) as T;
 
   Node.prototype.removeChild = function <T extends Node>(this: Node, child: T): T {
     if (child.parentNode !== this) {
