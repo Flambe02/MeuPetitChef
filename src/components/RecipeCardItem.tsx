@@ -3,6 +3,7 @@ import { Link } from 'react-router';
 import { routes } from '@/app/routes';
 import { FavoriteButton } from '@/components/FavoriteButton';
 import { DataLabel } from '@/components/ui/Card';
+import { RecipeImage } from '@/components/ui/RecipeImage';
 import { equipmentLabel, visibleEquipment } from '@/domain/equipment';
 import type { ChefMode, RecipeCard } from '@/domain/types';
 import { formatDuration, formatGrams, formatKcal, formatServings } from '@/lib/format';
@@ -31,20 +32,11 @@ export function RecipeCardItem({
         to={routes.recipe(recipe.slug)}
         className="block overflow-hidden rounded-lg border border-hairline bg-card no-underline"
       >
-        <div className="aspect-[16/10] w-full bg-inset">
-          {recipe.heroImageUrl ? (
-            <img
-              src={recipe.heroImageUrl}
-              alt=""
-              loading="lazy"
-              className="size-full object-cover"
-            />
-          ) : (
-            <div className="flex size-full items-center justify-center">
-              <DataLabel>Sem foto</DataLabel>
-            </div>
-          )}
-        </div>
+        <RecipeImage
+          src={recipe.heroImageUrl}
+          className="aspect-[16/10] w-full"
+          fallback={<DataLabel>Sem foto</DataLabel>}
+        />
 
         <div className="flex flex-col gap-2 p-4">
           <h3 className="font-sans text-heading font-semibold text-ink">{recipe.title}</h3>

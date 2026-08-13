@@ -1,15 +1,12 @@
 import { Link } from 'react-router';
 
 import { routes } from '@/app/routes';
+import { RecipeImage } from '@/components/ui/RecipeImage';
 import { recipeMeta, recipeMetaShort } from '@/domain/recipe-meta';
 import type { ChefMode, RecipeCard } from '@/domain/types';
 
 function Thumb({ url, className }: { url: string | null; className: string }) {
-  return (
-    <div className={`${className} shrink-0 overflow-hidden bg-inset`}>
-      {url ? <img src={url} alt="" loading="lazy" className="size-full object-cover" /> : null}
-    </div>
-  );
+  return <RecipeImage src={url} className={`${className} shrink-0`} />;
 }
 
 /** A dense list row: thumbnail, title, mono meta, chevron. Used by Favoritos. */

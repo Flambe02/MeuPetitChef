@@ -5,6 +5,7 @@ import { Link, useNavigate, useParams } from 'react-router';
 import { routes } from '@/app/routes';
 import { FavoriteButton } from '@/components/FavoriteButton';
 import { DataLabel } from '@/components/ui/Card';
+import { RecipeImage } from '@/components/ui/RecipeImage';
 import { EmptyState, ErrorState, Spinner } from '@/components/ui/states';
 import { CHEF_MODES } from '@/domain/chef-modes';
 import { EQUIPMENT_THEME, equipmentLabel, visibleEquipment } from '@/domain/equipment';
@@ -92,20 +93,12 @@ export default function RecipeScreen() {
     <div className="flex min-h-dvh flex-col">
       <div className="animate-in flex-1">
         {/* ── Hero ───────────────────────────────────────────────────── */}
-        <div className="relative h-[230px] bg-inset">
-          {data.heroImageUrl ? (
-            // A linked photo can rot — that is the trade migration 16 makes.
-            // When it does, fall back to the empty frame rather than to the
-            // browser's broken-image glyph, which looks like our bug.
-            <img
-              src={data.heroImageUrl}
-              alt=""
-              className="size-full object-cover"
-              onError={(event) => {
-                event.currentTarget.style.display = 'none';
-              }}
-            />
-          ) : null}
+        <div className="relative h-[230px]">
+          {/* A linked photo can rot — that is the trade migration 16 makes.
+              When it does, RecipeImage falls back to the empty frame rather
+              than to the browser's broken-image glyph, which looks like our
+              bug. */}
+          <RecipeImage src={data.heroImageUrl} className="absolute inset-0" fallback={null} />
 
           {/* Your own draft, so your own photo. Offered here rather than in a
               settings screen because this is where you notice it is missing.

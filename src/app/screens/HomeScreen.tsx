@@ -23,6 +23,7 @@ import { Link, useNavigate } from 'react-router';
 import { routes } from '@/app/routes';
 import { IconButton } from '@/components/ui/IconButton';
 import { DataLabel } from '@/components/ui/Card';
+import { RecipeImage } from '@/components/ui/RecipeImage';
 import { EmptyState, ErrorState, Spinner } from '@/components/ui/states';
 import { CHEF_MODES } from '@/domain/chef-modes';
 import { EQUIPMENT_THEME } from '@/domain/equipment';
@@ -456,15 +457,8 @@ export default function HomeScreen() {
         {suggestion ? (
           <div className="flex flex-col gap-3.5 rounded-xl border border-hairline bg-raised p-3.5 shadow-card">
             <div className="flex gap-3.5">
-              <div className="relative min-h-[150px] w-[124px] shrink-0 overflow-hidden rounded-lg bg-inset">
-                {suggestion.heroImageUrl ? (
-                  <img
-                    src={suggestion.heroImageUrl}
-                    alt=""
-                    loading="lazy"
-                    className="size-full object-cover"
-                  />
-                ) : null}
+              <div className="relative min-h-[150px] w-[124px] shrink-0 overflow-hidden rounded-lg">
+                <RecipeImage src={suggestion.heroImageUrl} className="absolute inset-0" fallback={null} />
                 <span className="pointer-events-none absolute top-2 left-2 rounded-xs bg-graphite-900 px-2 py-[5px] font-mono text-[9px] tracking-[0.14em] text-porcelain-100 uppercase">
                   Sugestão de hoje
                 </span>

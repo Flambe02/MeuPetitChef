@@ -3,6 +3,7 @@ import { useNavigate, useParams } from 'react-router';
 
 import { routes } from '@/app/routes';
 import { FullScreen } from '@/components/FullScreen';
+import { RecipeImage } from '@/components/ui/RecipeImage';
 import { EmptyState, ErrorState, Spinner } from '@/components/ui/states';
 import { EQUIPMENT_THEME } from '@/domain/equipment';
 import { formatAmount, scaleLine, servingFactor } from '@/domain/scaling';
@@ -73,24 +74,16 @@ export default function RecipeSpreadScreen() {
           that can fail at read time. A frame that says so beats a broken icon.
           Upright it takes a fixed slice of the page; sideways it takes what the
           page has left, which is what makes it look like a plate on a page. */}
-      <div className="mt-6 flex h-44 min-h-0 shrink-0 items-center justify-center overflow-hidden rounded-lg border border-hairline bg-inset landscape:h-auto landscape:flex-1">
-        {data.heroImageUrl ? (
-          <img
-            src={data.heroImageUrl}
-            alt=""
-            loading="lazy"
-            className="size-full object-cover"
-            onError={(event) => {
-              event.currentTarget.style.display = 'none';
-            }}
-          />
-        ) : (
+      <RecipeImage
+        src={data.heroImageUrl}
+        className="mt-6 h-44 min-h-0 shrink-0 rounded-lg border border-hairline landscape:h-auto landscape:flex-1"
+        fallback={
           <span className="flex flex-col items-center gap-2 p-6 text-center text-ink-muted">
             <ImageOff aria-hidden className="size-6" strokeWidth={1.5} />
             <span className="text-small">Sem foto</span>
           </span>
-        )}
-      </div>
+        }
+      />
 
       <p className="mt-4 font-mono text-[11px] tracking-[0.14em] text-ink-muted uppercase">
         {path?.name ?? 'Preparo'} · {formatDuration(data.totalMinutes)} · {data.defaultServings}{' '}
