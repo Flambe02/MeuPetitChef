@@ -7,27 +7,24 @@
  *
  * Usage: npm run icons
  */
-import { mkdir, readdir } from 'node:fs/promises';
+import { mkdir } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import sharp from 'sharp';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
-const brandDir = path.join(root, 'brand');
 const publicDir = path.join(root, 'public');
 
 const PORCELAIN = { r: 0xf5, g: 0xf3, b: 0xee, alpha: 1 };
 
-/** Newest logo wins — the brand folder holds V0/V2/V3 side by side. */
-async function pickSource() {
-  const files = (await readdir(brandDir)).filter((f) => /\.(png|jpe?g|webp|svg)$/i.test(f)).sort();
-  const preferred = files.filter((f) => /v\d+/i.test(f)).pop() ?? files.at(-1);
-  if (!preferred) throw new Error(`no logo found in ${brandDir}`);
-  return path.join(brandDir, preferred);
-}
-
-const source = await pickSource();
+// `public/brand/badge.png` is the Capivara mark itself — a face cropped
+// tight to its own circular frame — which is what an app icon needs. The
+// files under the root `brand/` folder are full presentation sheets (logo +
+// wordmark + chef-mode gallery); running those through `fit: 'contain'`
+// produces an unreadable icon, which is exactly the bug this script used to
+// have.
+const source = path.join(publicDir, 'brand', 'badge.png');
 await mkdir(publicDir, { recursive: true });
 console.log(`· source ${path.relative(root, source)}`);
 
