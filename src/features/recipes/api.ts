@@ -14,7 +14,7 @@ import type {
   VariantNutrition,
 } from '@/domain/types';
 import { storageUrl, supabase } from '@/lib/supabase/client';
-import { unwrap, unwrapMaybe } from '@/lib/supabase/errors';
+import { DataError, unwrap, unwrapMaybe } from '@/lib/supabase/errors';
 import type { RecipeSearchParams } from '@/lib/query/keys';
 
 /* ---------------------------------------------------------------------------
@@ -98,6 +98,27 @@ export async function setRecipePhoto(recipeId: string, photoUrl: string): Promis
       .from('recipes')
       .update({ photo_url: trimmed === '' ? null : trimmed })
       .eq('id', recipeId)
+      .select('id'),
+  );
+}
+
+/**
+ * Swaps one ingredient for another — "manteiga" becomes "óleo de coco" — by
+ * rewriting the display name in place. Quantity and unit are untouched: the
+ * substitution is about *what* goes in, not how much, and the person can
+ * adjust the amount themselves if the swap changes it.
+ *
+ * Only reaches a row RLS already lets this user touch (`owns_draft_recipe`) —
+ * no separate check needed here, `unwrap` surfaces the policy's rejection.
+ */
+export async function updateIngredientName(ingredientId: string, displayName: string): Promise<void> {
+  const trimmed = displayName.trim();
+  if (!trimmed) throw new DataError('O ingrediente não pode ficar em branco.');
+  unwrap(
+    await supabase
+      .from('recipe_ingredients')
+      .update({ display_name: trimmed })
+      .eq('id', ingredientId)
       .select('id'),
   );
 }

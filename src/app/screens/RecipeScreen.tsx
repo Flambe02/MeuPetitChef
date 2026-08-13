@@ -1,4 +1,4 @@
-import { BookOpen, Check, ImagePlus, Volume2, VolumeX } from 'lucide-react';
+import { BookOpen, Check, ImagePlus, Pencil, Volume2, VolumeX } from 'lucide-react';
 import { useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router';
 
@@ -10,22 +10,25 @@ import { EmptyState, ErrorState, Spinner } from '@/components/ui/states';
 import { CHEF_MODES } from '@/domain/chef-modes';
 import { EQUIPMENT_THEME, equipmentLabel, visibleEquipment } from '@/domain/equipment';
 import { formatAmount, scaleLine, servingFactor } from '@/domain/scaling';
-import type { ChefMode } from '@/domain/types';
-import { useProfile } from '@/features/profile/hooks';
-import { useRecipe, useSetRecipePhoto } from '@/features/recipes/hooks';
+import type { ChefMode, EquipmentType } from '@/domain/types';
+import { useAddPath } from '@/features/generate/hooks';
+import { useEquipment, useProfile } from '@/features/profile/hooks';
+import { useRecipe, useSetRecipePhoto, useUpdateIngredientName } from '@/features/recipes/hooks';
 import { useAddRecipeToList } from '@/features/shopping/hooks';
 import { useSpeechOutput } from '@/hooks/useSpeechOutput';
 import { cn } from '@/lib/cn';
 import { formatDuration, formatGrams, formatKcal } from '@/lib/format';
 import { useLanguage } from '@/lib/i18n/language-context';
+import type { TranslationKey } from '@/lib/i18n/pt';
 
 type Tab = 'steps' | 'ingredients' | 'info';
 
-const TABS: { id: Tab; label: string }[] = [
-  { id: 'steps', label: 'Etapas' },
-  { id: 'ingredients', label: 'Ingredientes' },
-  { id: 'info', label: 'Informações' },
-];
+const TAB_LABEL_KEY: Record<Tab, TranslationKey> = {
+  steps: 'recipe.tabSteps',
+  ingredients: 'recipe.tabIngredients',
+  info: 'recipe.tabInfo',
+};
+const TABS: Tab[] = ['steps', 'ingredients', 'info'];
 
 /**
  * The recipe sheet.
@@ -39,8 +42,10 @@ export default function RecipeScreen() {
   const { slug } = useParams<{ slug: string }>();
   const navigate = useNavigate();
   const { data: profile } = useProfile();
-  const { language } = useLanguage();
+  const { data: ownedEquipment } = useEquipment();
+  const { language, t } = useLanguage();
   const speechOutput = useSpeechOutput();
+  const addPath = useAddPath();
 
   const [mode, setMode] = useState<ChefMode | null>(null);
   const activeMode = mode ?? profile?.chef_mode ?? 'normal';
@@ -52,18 +57,24 @@ export default function RecipeScreen() {
   const [checked, setChecked] = useState<string[]>([]);
   const [editingPhoto, setEditingPhoto] = useState(false);
   const [photoUrl, setPhotoUrl] = useState('');
+  const [editingIngredientId, setEditingIngredientId] = useState<string | null>(null);
+  const [ingredientDraft, setIngredientDraft] = useState('');
 
   const recipe = useRecipe(slug, activeMode);
   const setPhoto = useSetRecipePhoto();
+  const updateIngredient = useUpdateIngredientName();
   const addToList = useAddRecipeToList();
 
-  if (recipe.isPending) return <Spinner label="Carregando a receita…" />;
+  if (recipe.isPending) return <Spinner label={t('recipe.loading')} />;
   if (recipe.isError) {
     return <ErrorState error={recipe.error} onRetry={() => void recipe.refetch()} />;
   }
   if (!recipe.data) {
     return (
-      <EmptyState title="Receita não encontrada" description="Ela pode ter sido despublicada." />
+      <EmptyState
+        title={t('recipe.notFoundTitle')}
+        description={t('recipe.notFoundDescription')}
+      />
     );
   }
 
@@ -82,14 +93,30 @@ export default function RecipeScreen() {
   );
   const hasPathChoice = distinctKits.size > 1;
 
+  // Appliances the user owns that no route uses yet — "trocar de air fryer
+  // para forno" without leaving the recipe sheet. Only offered on a draft
+  // this account authored: migration 12's policies refuse the write
+  // otherwise, and a button that always fails is worse than no button.
+  const usedByAnyPath = new Set(data.paths.flatMap((path) => path.requiredEquipment));
+  const swappableEquipment: EquipmentType[] =
+    data.status === 'draft'
+      ? (ownedEquipment ?? [])
+          .map((row) => row.equipment)
+          .filter((item) => item !== 'none' && !usedByAnyPath.has(item))
+      : [];
+
   const stats = [
-    { label: 'Tempo', value: formatDuration(data.totalMinutes) },
-    { label: 'Ativo', value: formatDuration(data.activeMinutes) },
-    { label: 'Porções', value: String(activeServings) },
+    { label: t('recipe.statTime'), value: formatDuration(data.totalMinutes) },
+    { label: t('recipe.statActive'), value: formatDuration(data.activeMinutes) },
+    { label: t('recipe.statServings'), value: String(activeServings) },
     {
-      label: 'Nível',
+      label: t('recipe.statLevel'),
       value:
-        data.difficulty === 'facil' ? 'Fácil' : data.difficulty === 'medio' ? 'Médio' : 'Difícil',
+        data.difficulty === 'facil'
+          ? t('home.difficultyEasy')
+          : data.difficulty === 'medio'
+            ? t('home.difficultyMedium')
+            : t('home.difficultyHard'),
     },
   ];
 
@@ -114,14 +141,14 @@ export default function RecipeScreen() {
               className="absolute right-4 bottom-3 flex h-9 items-center gap-2 rounded-pill border border-hairline bg-raised/90 px-3 text-small font-semibold text-ink backdrop-blur"
             >
               <ImagePlus aria-hidden className="size-4" />
-              {data.heroImageUrl ? 'Trocar a foto' : 'Adicionar foto'}
+              {data.heroImageUrl ? t('recipe.changePhoto') : t('recipe.addPhoto')}
             </button>
           ) : null}
 
           <div className="absolute inset-x-4 top-3 flex justify-between">
             <button
               type="button"
-              aria-label="Voltar"
+              aria-label={t('recipe.back')}
               onClick={() => void navigate(-1)}
               className="flex size-10 items-center justify-center rounded-pill border border-hairline bg-raised/90 text-ink backdrop-blur"
             >
@@ -131,7 +158,7 @@ export default function RecipeScreen() {
               {speechOutput.isSupported && activePath ? (
                 <button
                   type="button"
-                  aria-label={speechOutput.isSpeaking ? 'Parar leitura' : 'Ouvir a receita'}
+                  aria-label={speechOutput.isSpeaking ? t('recipe.stopReading') : t('recipe.listenToRecipe')}
                   onClick={() =>
                     speechOutput.isSpeaking
                       ? speechOutput.stop()
@@ -163,7 +190,7 @@ export default function RecipeScreen() {
         {editingPhoto ? (
           <div className="border-b border-hairline bg-raised px-5 py-4">
             <label className="block text-small text-ink-muted" htmlFor="photo-url">
-              Link da foto
+              {t('recipe.photoLink')}
             </label>
             <input
               id="photo-url"
@@ -171,12 +198,10 @@ export default function RecipeScreen() {
               inputMode="url"
               value={photoUrl}
               onChange={(event) => setPhotoUrl(event.target.value)}
-              placeholder="https://…/foto.jpg"
+              placeholder={t('recipe.photoUrlPlaceholder')}
               className="mt-1 h-11 w-full rounded-lg border border-hairline bg-transparent px-3 text-body text-ink outline-none placeholder:text-ink-muted"
             />
-            <p className="mt-2 text-small text-ink-muted">
-              A foto continua onde está — guardamos só o endereço. Deixe em branco para remover.
-            </p>
+            <p className="mt-2 text-small text-ink-muted">{t('recipe.photoLinkHint')}</p>
             <div className="mt-3 flex gap-2">
               <button
                 type="button"
@@ -189,14 +214,14 @@ export default function RecipeScreen() {
                 }
                 className="h-[42px] rounded-lg bg-graphite-900 px-4 text-[14px] font-semibold text-porcelain-100 disabled:opacity-45"
               >
-                {setPhoto.isPending ? 'Salvando…' : 'Salvar'}
+                {setPhoto.isPending ? t('recipe.saving') : t('recipe.save')}
               </button>
               <button
                 type="button"
                 onClick={() => setEditingPhoto(false)}
                 className="h-[42px] rounded-lg border border-strong px-4 text-[14px] font-semibold text-ink"
               >
-                Cancelar
+                {t('recipe.cancel')}
               </button>
             </div>
             {setPhoto.isError ? (
@@ -225,7 +250,7 @@ export default function RecipeScreen() {
           {/* ── Adapted to you ───────────────────────────────────────── */}
           {nutrition ? (
             <div className="mt-6 rounded-lg border border-hairline border-l-2 border-l-rouge bg-raised p-4">
-              <DataLabel tone="signal">Adaptada ao seu perfil</DataLabel>
+              <DataLabel tone="signal">{t('recipe.adaptedToYou')}</DataLabel>
               {nutrition.changes.length > 0 ? (
                 <ul className="mt-3.5 flex flex-col gap-2">
                   {nutrition.changes.map((change) => (
@@ -237,7 +262,9 @@ export default function RecipeScreen() {
                 </ul>
               ) : (
                 <p className="mt-3.5 text-small leading-[1.5] text-ink-secondary">
-                  Esta é a versão {CHEF_MODES.find((c) => c.id === activeMode)?.label} da receita.
+                  {t('recipe.thisIsVersion', {
+                    mode: CHEF_MODES.find((c) => c.id === activeMode)?.label ?? '',
+                  })}
                 </p>
               )}
 
@@ -249,7 +276,7 @@ export default function RecipeScreen() {
                     aria-expanded={showModes}
                     className="mt-3.5 text-[13px] font-semibold text-rouge"
                   >
-                    {showModes ? 'Fechar' : 'Alterar o chef'}
+                    {showModes ? t('recipe.close') : t('recipe.changeChef')}
                   </button>
                   {showModes ? (
                     <div className="animate-fade mt-3.5 flex gap-2" role="radiogroup">
@@ -287,11 +314,9 @@ export default function RecipeScreen() {
           {hasPathChoice ? (
             <>
               <h2 className="mt-6.5 mb-1 font-display text-[21px] font-bold tracking-[-0.02em] text-ink">
-                Como você quer preparar esta receita?
+                {t('recipe.howToPrepare')}
               </h2>
-              <p className="mb-3 text-small text-ink-muted">
-                Só os caminhos possíveis com os seus equipamentos.
-              </p>
+              <p className="mb-3 text-small text-ink-muted">{t('recipe.onlyPossiblePaths')}</p>
               <div className="flex flex-col gap-2">
                 {data.paths.map((path) => {
                   const isActive = path.id === activePath?.id;
@@ -327,7 +352,7 @@ export default function RecipeScreen() {
 
                       {path.isRecommended && path.reason ? (
                         <span className="mt-2 block">
-                          <DataLabel tone="signal">Recomendado</DataLabel>
+                          <DataLabel tone="signal">{t('recipe.recommended')}</DataLabel>
                           <span className="mt-1.5 block text-small leading-[1.45] text-ink-secondary">
                             {path.reason}
                           </span>
@@ -336,7 +361,7 @@ export default function RecipeScreen() {
 
                       {path.missingEquipment.length > 0 ? (
                         <span className="mt-2 block text-small text-rouge">
-                          Falta:{' '}
+                          {t('recipe.missing')}:{' '}
                           {visibleEquipment(path.missingEquipment).map(equipmentLabel).join(', ')}
                         </span>
                       ) : null}
@@ -347,21 +372,70 @@ export default function RecipeScreen() {
             </>
           ) : null}
 
+          {/* ── Change appliance ─────────────────────────────────────────
+              The chef writes a new path for it, without touching the ones
+              that already exist — same mechanism as PrepScreen's "Tenho
+              outro aparelho", surfaced here so it doesn't take a detour
+              through the pre-flight screen to reach. */}
+          {swappableEquipment.length > 0 ? (
+            <section className="mt-6.5">
+              <DataLabel>{t('recipe.changeAppliance')}</DataLabel>
+              <p className="mt-2 text-small leading-[1.5] text-ink-muted">
+                {t('recipe.changeApplianceHint')}
+              </p>
+              <div className="no-scrollbar mt-3 flex gap-2 overflow-x-auto pb-1">
+                {swappableEquipment.map((item) => (
+                  <button
+                    key={item}
+                    type="button"
+                    disabled={addPath.isPending}
+                    onClick={() =>
+                      addPath.mutate({
+                        recipeId: data.id,
+                        title: data.title,
+                        ingredients: data.groups.flatMap((group) =>
+                          group.items.map((line) => line.displayName),
+                        ),
+                        equipment: item,
+                        equipmentLabel: EQUIPMENT_THEME[item].label,
+                        mode: activeMode,
+                        servings: activeServings,
+                        existingPaths: data.paths.length,
+                      })
+                    }
+                    className="sn-tag shrink-0 cursor-pointer disabled:opacity-45"
+                  >
+                    {addPath.isPending && addPath.variables?.equipment === item
+                      ? t('recipe.writing')
+                      : EQUIPMENT_THEME[item].short}
+                  </button>
+                ))}
+              </div>
+              {addPath.isError ? (
+                <p className="mt-2 text-small text-rouge">
+                  {addPath.error instanceof Error
+                    ? addPath.error.message
+                    : t('recipe.couldNotWritePath')}
+                </p>
+              ) : null}
+            </section>
+          ) : null}
+
           {/* ── Tabs ─────────────────────────────────────────────────── */}
           <div className="mt-6.5 flex gap-1.5 border-b border-hairline">
             {TABS.map((entry) => (
               <button
-                key={entry.id}
+                key={entry}
                 type="button"
-                onClick={() => setTab(entry.id)}
-                aria-selected={tab === entry.id}
+                onClick={() => setTab(entry)}
+                aria-selected={tab === entry}
                 role="tab"
                 className={cn(
                   '-mb-px border-b-2 px-3 py-2.5 text-small font-semibold',
-                  tab === entry.id ? 'border-rouge text-ink' : 'border-transparent text-ink-muted',
+                  tab === entry ? 'border-rouge text-ink' : 'border-transparent text-ink-muted',
                 )}
               >
-                {entry.label}
+                {t(TAB_LABEL_KEY[entry])}
               </button>
             ))}
           </div>
@@ -401,13 +475,13 @@ export default function RecipeScreen() {
           {tab === 'ingredients' ? (
             <div className="mt-4">
               <div className="flex items-center justify-between gap-3 border-b border-hairline pb-4">
-                <DataLabel>Porções</DataLabel>
+                <DataLabel>{t('recipe.statServings')}</DataLabel>
                 <div className="flex items-center gap-3">
                   <button
                     type="button"
                     className="sn-iconbtn"
                     data-variant="outline"
-                    aria-label="Menos porções"
+                    aria-label={t('recipe.fewerServings')}
                     onClick={() => setServings(Math.max(1, activeServings - 1))}
                   >
                     −
@@ -417,7 +491,7 @@ export default function RecipeScreen() {
                       redrawn. Without it the only feedback for a screen reader
                       was the ingredient amounts changing further down. */}
                   <output
-                    aria-label={`${activeServings} ${activeServings === 1 ? 'porção' : 'porções'}`}
+                    aria-label={`${activeServings} ${activeServings === 1 ? t('recipe.servingSingular') : t('recipe.servingPlural')}`}
                     className="min-w-4 text-center font-mono text-heading text-ink"
                   >
                     {activeServings}
@@ -426,7 +500,7 @@ export default function RecipeScreen() {
                     type="button"
                     className="sn-iconbtn"
                     data-variant="outline"
-                    aria-label="Mais porções"
+                    aria-label={t('recipe.moreServings')}
                     onClick={() => setServings(Math.min(20, activeServings + 1))}
                   >
                     +
@@ -441,50 +515,105 @@ export default function RecipeScreen() {
                     {group.items.map((item) => {
                       const scaled = scaleLine(item, factor);
                       const isChecked = checked.includes(item.id);
-                      return (
-                        <button
-                          key={item.id}
-                          type="button"
-                          aria-pressed={isChecked}
-                          onClick={() =>
-                            setChecked((current) =>
-                              current.includes(item.id)
-                                ? current.filter((id) => id !== item.id)
-                                : [...current, item.id],
-                            )
-                          }
-                          className="flex w-full items-start gap-3 border-b border-hairline py-3 text-left"
-                        >
-                          <span
-                            aria-hidden
-                            className={cn(
-                              'mt-0.5 flex size-[18px] shrink-0 items-center justify-center rounded-xs border text-[11px]',
-                              isChecked
-                                ? 'border-transparent bg-graphite-900 text-porcelain-100'
-                                : 'border-strong text-transparent',
-                            )}
+
+                      if (editingIngredientId === item.id) {
+                        return (
+                          <div
+                            key={item.id}
+                            className="flex items-center gap-2 border-b border-hairline py-3"
                           >
-                            ✓
-                          </span>
-                          <span className="min-w-0 flex-1">
+                            <input
+                              type="text"
+                              value={ingredientDraft}
+                              onChange={(event) => setIngredientDraft(event.target.value)}
+                              autoFocus
+                              className="h-10 min-w-0 flex-1 rounded-lg border border-hairline bg-transparent px-2.5 text-body text-ink outline-none"
+                            />
+                            <button
+                              type="button"
+                              disabled={updateIngredient.isPending}
+                              onClick={() =>
+                                updateIngredient.mutate(
+                                  { ingredientId: item.id, displayName: ingredientDraft },
+                                  { onSuccess: () => setEditingIngredientId(null) },
+                                )
+                              }
+                              className="h-9 shrink-0 rounded-lg bg-graphite-900 px-3 text-[13px] font-semibold text-porcelain-100 disabled:opacity-45"
+                            >
+                              {updateIngredient.isPending ? t('recipe.saving') : t('recipe.save')}
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => setEditingIngredientId(null)}
+                              className="h-9 shrink-0 rounded-lg border border-strong px-3 text-[13px] font-semibold text-ink"
+                            >
+                              {t('recipe.cancel')}
+                            </button>
+                          </div>
+                        );
+                      }
+
+                      return (
+                        <div
+                          key={item.id}
+                          className="flex w-full items-start gap-1 border-b border-hairline py-3"
+                        >
+                          <button
+                            type="button"
+                            aria-pressed={isChecked}
+                            onClick={() =>
+                              setChecked((current) =>
+                                current.includes(item.id)
+                                  ? current.filter((id) => id !== item.id)
+                                  : [...current, item.id],
+                              )
+                            }
+                            className="flex min-w-0 flex-1 items-start gap-3 text-left"
+                          >
                             <span
+                              aria-hidden
                               className={cn(
-                                'block text-body text-ink',
-                                isChecked && 'text-ink-muted line-through',
+                                'mt-0.5 flex size-[18px] shrink-0 items-center justify-center rounded-xs border text-[11px]',
+                                isChecked
+                                  ? 'border-transparent bg-graphite-900 text-porcelain-100'
+                                  : 'border-strong text-transparent',
                               )}
                             >
-                              {scaled.displayName}
+                              ✓
                             </span>
-                            {scaled.note ? (
-                              <span className="mt-1 block text-small text-ink-muted">
-                                {scaled.note}
+                            <span className="min-w-0 flex-1">
+                              <span
+                                className={cn(
+                                  'block text-body text-ink',
+                                  isChecked && 'text-ink-muted line-through',
+                                )}
+                              >
+                                {scaled.displayName}
                               </span>
-                            ) : null}
-                          </span>
-                          <span className="shrink-0 font-mono text-[13px] text-ink-secondary">
-                            {formatAmount(scaled.quantity, scaled.unit)}
-                          </span>
-                        </button>
+                              {scaled.note ? (
+                                <span className="mt-1 block text-small text-ink-muted">
+                                  {scaled.note}
+                                </span>
+                              ) : null}
+                            </span>
+                            <span className="shrink-0 font-mono text-[13px] text-ink-secondary">
+                              {formatAmount(scaled.quantity, scaled.unit)}
+                            </span>
+                          </button>
+                          {data.status === 'draft' ? (
+                            <button
+                              type="button"
+                              aria-label={t('recipe.changeIngredient')}
+                              onClick={() => {
+                                setIngredientDraft(item.displayName);
+                                setEditingIngredientId(item.id);
+                              }}
+                              className="mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-pill text-ink-muted"
+                            >
+                              <Pencil aria-hidden className="size-[15px]" strokeWidth={1.75} />
+                            </button>
+                          ) : null}
+                        </div>
                       );
                     })}
                   </div>
@@ -504,16 +633,16 @@ export default function RecipeScreen() {
                 className="mt-5 h-[46px] w-full rounded-lg border border-strong text-[14px] font-semibold text-ink disabled:opacity-45"
               >
                 {addToList.isSuccess
-                  ? 'Adicionado à lista ✓'
+                  ? t('recipe.addedToList')
                   : addToList.isPending
-                    ? 'Adicionando…'
-                    : 'Adicionar à lista de compras'}
+                    ? t('recipe.adding')
+                    : t('recipe.addToShoppingList')}
               </button>
               {addToList.isError ? (
                 <p className="mt-2 text-small text-rouge">
                   {addToList.error instanceof Error
                     ? addToList.error.message
-                    : 'Não foi possível adicionar.'}
+                    : t('recipe.couldNotAdd')}
                 </p>
               ) : null}
             </div>
@@ -521,14 +650,14 @@ export default function RecipeScreen() {
 
           {tab === 'info' ? (
             <div className="mt-4">
-              <DataLabel>Por porção</DataLabel>
+              <DataLabel>{t('recipe.perServing')}</DataLabel>
               <div className="mt-2.5 flex flex-col">
                 {[
-                  { label: 'Calorias', value: formatKcal(nutrition?.kcal ?? null) },
-                  { label: 'Proteínas', value: formatGrams(nutrition?.protein_g ?? null) },
-                  { label: 'Carboidratos', value: formatGrams(nutrition?.carbs_g ?? null) },
-                  { label: 'Gorduras', value: formatGrams(nutrition?.fat_g ?? null) },
-                  { label: 'Fibras', value: formatGrams(nutrition?.fiber_g ?? null) },
+                  { label: t('recipe.calories'), value: formatKcal(nutrition?.kcal ?? null) },
+                  { label: t('recipe.protein'), value: formatGrams(nutrition?.protein_g ?? null) },
+                  { label: t('recipe.carbs'), value: formatGrams(nutrition?.carbs_g ?? null) },
+                  { label: t('recipe.fat'), value: formatGrams(nutrition?.fat_g ?? null) },
+                  { label: t('recipe.fiber'), value: formatGrams(nutrition?.fiber_g ?? null) },
                 ].map((row) => (
                   <div
                     key={row.label}
@@ -544,8 +673,7 @@ export default function RecipeScreen() {
                   Une phrase qui promet une réaction qui n'aura pas lieu fait
                   passer un comportement correct pour une panne. */}
               <p className="mt-4.5 text-small leading-[1.6] text-ink-muted">
-                Valores estimados por porção, para o chef selecionado. Mudar o número de porções
-                altera as quantidades dos ingredientes, não estes valores.
+                {t('recipe.perServingHint')}
               </p>
 
               {data.notes.length > 0 ? (
@@ -575,7 +703,7 @@ export default function RecipeScreen() {
               want when the phone is going on the counter. */}
           <Link
             to={routes.recipeSpread(data.slug)}
-            aria-label="Abrir a ficha"
+            aria-label={t('recipe.openSheet')}
             className="flex size-[50px] flex-none items-center justify-center rounded-lg border border-strong text-ink no-underline"
           >
             <BookOpen aria-hidden className="size-5" />
@@ -588,7 +716,7 @@ export default function RecipeScreen() {
             }
             className="flex h-[50px] flex-1 items-center justify-center rounded-lg bg-graphite-900 text-body font-semibold text-porcelain-100 no-underline"
           >
-            Vamos cozinhar
+            {t('recipe.letsCook')}
           </Link>
         </div>
         {activePath ? (

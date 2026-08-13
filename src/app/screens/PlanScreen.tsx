@@ -24,16 +24,14 @@ import {
   useWeekPlan,
 } from '@/features/planning/hooks';
 import { useProfile } from '@/features/profile/hooks';
+import { useLanguage } from '@/lib/i18n/language-context';
 import { parseISODate, toISODate } from '@/lib/format';
 import { startOfWeek, weekDates } from '@/lib/planning/dates';
 import { computeDailyNutrition, computeWeeklyNutrition } from '@/lib/planning/nutrition';
 import type { GenerationPreferences, PlannedEntry } from '@/lib/planning/types';
 import { computeWeeklyVariety } from '@/lib/planning/variety';
 
-const MEAL_SLOTS: { slot: MealSlot; label: string }[] = [
-  { slot: 'almoco', label: 'Almoço' },
-  { slot: 'jantar', label: 'Jantar' },
-];
+const MEAL_SLOTS: MealSlot[] = ['almoco', 'jantar'];
 
 const monthFormatter = new Intl.DateTimeFormat(brand.locale, { month: 'short' });
 const weekdayFormatter = new Intl.DateTimeFormat(brand.locale, { weekday: 'short' });
@@ -62,6 +60,11 @@ const DEFAULT_PREFERENCES: GenerationPreferences = {
 
 export default function PlanScreen() {
   const navigate = useNavigate();
+  const { t } = useLanguage();
+  const SLOT_LABEL: Partial<Record<MealSlot, string>> = {
+    almoco: t('plan.lunch'),
+    jantar: t('plan.dinner'),
+  };
   const [weekStart, setWeekStart] = useState(() => startOfWeek());
   const dates = useMemo(() => weekDates(weekStart), [weekStart]);
   const weekEnd = dates[6]!;
@@ -109,7 +112,10 @@ export default function PlanScreen() {
       {
         onSuccess: (result) =>
           setFeedback(
-            `Mantive seus ${String(result.keptCount)} pratos escolhidos e reorganizei os outros ${String(result.filledCount)}.`,
+            t('plan.keptAndReorganized', {
+              kept: result.keptCount,
+              filled: result.filledCount,
+            }),
           ),
       },
     );
@@ -118,12 +124,14 @@ export default function PlanScreen() {
   return (
     <div className="animate-in px-5 pt-1 pb-24">
       <header className="pt-3">
-        <h1 className="font-display text-[30px] font-bold tracking-[-0.03em] text-ink">Semana</h1>
+        <h1 className="font-display text-[30px] font-bold tracking-[-0.03em] text-ink">
+          {t('nav.plan')}
+        </h1>
 
         <div className="mt-3 flex items-center justify-between">
           <button
             type="button"
-            aria-label="Semana anterior"
+            aria-label={t('plan.previousWeek')}
             onClick={() => setWeekStart((current) => addDays(current, -7))}
             className="flex size-9 items-center justify-center rounded-lg border border-hairline text-ink"
           >
@@ -138,7 +146,7 @@ export default function PlanScreen() {
           </button>
           <button
             type="button"
-            aria-label="Próxima semana"
+            aria-label={t('plan.nextWeek')}
             onClick={() => setWeekStart((current) => addDays(current, 7))}
             className="flex size-9 items-center justify-center rounded-lg border border-hairline text-ink"
           >
@@ -149,8 +157,12 @@ export default function PlanScreen() {
         {profile ? (
           <p className="mt-2 text-center text-small text-ink-muted">
             {[
-              profile.daily_kcal_goal ? `${String(profile.daily_kcal_goal)} kcal/dia` : null,
-              profile.default_servings === 1 ? '1 pessoa' : `${String(profile.default_servings)} pessoas`,
+              profile.daily_kcal_goal
+                ? t('plan.kcalPerDay', { kcal: profile.daily_kcal_goal })
+                : null,
+              profile.default_servings === 1
+                ? t('plan.onePerson')
+                : t('plan.peopleCount', { count: profile.default_servings }),
             ]
               .filter(Boolean)
               .join(' · ')}
@@ -160,7 +172,7 @@ export default function PlanScreen() {
         <div className="mt-4 flex flex-col gap-2">
           <Button size="lg" block onClick={() => setGenerateSheetOpen(true)}>
             <Sparkles aria-hidden className="size-4.5" strokeWidth={2} />
-            Montar minha semana
+            {t('plan.buildMyWeek')}
           </Button>
           {!weekIsEmpty ? (
             <Button
@@ -170,7 +182,7 @@ export default function PlanScreen() {
               disabled={improveWeek.isPending}
               onClick={runImprove}
             >
-              {improveWeek.isPending ? 'Melhorando…' : '✨ Melhorar minha semana'}
+              {improveWeek.isPending ? t('plan.improving') : t('plan.improveMyWeek')}
             </Button>
           ) : null}
         </div>
@@ -183,7 +195,7 @@ export default function PlanScreen() {
               onClick={() => setFeedback(null)}
               className="mt-1 text-[12px] font-semibold text-ink-muted underline underline-offset-4"
             >
-              Fechar
+              {t('plan.close')}
             </button>
           </Card>
         ) : null}
@@ -193,18 +205,18 @@ export default function PlanScreen() {
         <DaySelector dates={dates} />
       </div>
 
-      {entries.isPending ? <Spinner label="Carregando sua semana…" /> : null}
+      {entries.isPending ? <Spinner label={t('plan.loadingWeek')} /> : null}
       {entries.isError ? <ErrorState error={entries.error} onRetry={() => void entries.refetch()} /> : null}
 
       {weekIsEmpty ? (
         <EmptyState
           className="mt-6"
-          title="Sua semana está vazia"
-          description="Planeje suas refeições ou deixe a gente montar tudo para você."
+          title={t('plan.emptyWeekTitle')}
+          description={t('plan.emptyWeekDescription')}
           action={
             <div className="mt-2 flex w-full flex-col gap-2">
               <Button block onClick={() => setGenerateSheetOpen(true)}>
-                Montar minha semana
+                {t('plan.buildMyWeek')}
               </Button>
               <Button
                 variant="ghost"
@@ -213,7 +225,7 @@ export default function PlanScreen() {
                   document.getElementById('plan-day-0')?.scrollIntoView({ behavior: 'smooth' })
                 }
               >
-                Planejar manualmente
+                {t('plan.planManually')}
               </Button>
             </div>
           }
@@ -228,12 +240,12 @@ export default function PlanScreen() {
                 <DataLabel className="mb-2 block">{dayLabel(date)}</DataLabel>
 
                 <div className="flex flex-col gap-3">
-                  {MEAL_SLOTS.map(({ slot, label }) => {
+                  {MEAL_SLOTS.map((slot) => {
                     const planned = byDayAndSlot.get(`${toISODate(date)}:${slot}`);
                     return (
                       <div key={slot}>
                         <p className="mb-1.5 font-mono text-[10px] tracking-[0.14em] text-ink-muted uppercase">
-                          {label}
+                          {SLOT_LABEL[slot]}
                         </p>
                         {planned ? (
                           <MealCard
@@ -273,16 +285,14 @@ export default function PlanScreen() {
                   {
                     onSuccess: (count) =>
                       setFeedback(
-                        count > 0
-                          ? 'Lista de compras atualizada com os ingredientes da semana.'
-                          : 'Nenhuma receita para levar à lista ainda.',
+                        count > 0 ? t('plan.shoppingListUpdated') : t('plan.noRecipesForList'),
                       ),
                   },
                 )
               }
             >
               <ShoppingBasket aria-hidden className="size-4.5" strokeWidth={1.75} />
-              {createShoppingList.isPending ? 'Criando lista…' : 'Criar lista de compras'}
+              {createShoppingList.isPending ? t('plan.creatingList') : t('plan.createShoppingList')}
             </Button>
           </div>
         </>
@@ -299,7 +309,7 @@ export default function PlanScreen() {
             {
               onSuccess: () => {
                 setGenerateSheetOpen(false);
-                setFeedback('Sua semana está pronta. Corrija o que quiser.');
+                setFeedback(t('plan.weekReady'));
               },
             },
           )

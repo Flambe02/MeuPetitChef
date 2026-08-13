@@ -3,7 +3,13 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import type { ChefMode } from '@/domain/types';
 import { keys, type RecipeSearchParams } from '@/lib/query/keys';
 
-import { getRecipeDetail, getSuggestions, searchRecipes, setRecipePhoto } from './api';
+import {
+  getRecipeDetail,
+  getSuggestions,
+  searchRecipes,
+  setRecipePhoto,
+  updateIngredientName,
+} from './api';
 
 /**
  * Links a photo to a recipe, or clears it with an empty string.
@@ -16,6 +22,16 @@ export function useSetRecipePhoto() {
   return useMutation({
     mutationFn: ({ recipeId, photoUrl }: { recipeId: string; photoUrl: string }) =>
       setRecipePhoto(recipeId, photoUrl),
+    onSuccess: () => client.invalidateQueries({ queryKey: keys.recipes.all }),
+  });
+}
+
+/** Swaps an ingredient's name — see `updateIngredientName` for what does and doesn't change. */
+export function useUpdateIngredientName() {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: ({ ingredientId, displayName }: { ingredientId: string; displayName: string }) =>
+      updateIngredientName(ingredientId, displayName),
     onSuccess: () => client.invalidateQueries({ queryKey: keys.recipes.all }),
   });
 }

@@ -83,11 +83,17 @@ const RECIPE: RecipeDetail = {
 vi.mock('@/features/recipes/hooks', () => ({
   useRecipe: () => ({ data: RECIPE, isPending: false, isError: false, error: null }),
   useSetRecipePhoto: () => ({ mutate: vi.fn(), isPending: false, isError: false, error: null }),
+  useUpdateIngredientName: () => ({ mutate: vi.fn(), isPending: false, isError: false, error: null }),
 }));
 
 vi.mock('@/features/profile/hooks', () => ({
   useProfile: () => ({ data: { chef_mode: 'normal' } }),
   useUpdateProfile: () => ({ mutate: vi.fn() }),
+  useEquipment: () => ({ data: [] }),
+}));
+
+vi.mock('@/features/generate/hooks', () => ({
+  useAddPath: () => ({ mutate: vi.fn(), isPending: false, isError: false, error: null }),
 }));
 
 vi.mock('@/features/auth/session-context', () => ({

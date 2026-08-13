@@ -10,6 +10,7 @@ import { formatAmount, scaleLine, servingFactor } from '@/domain/scaling';
 import { useProfile } from '@/features/profile/hooks';
 import { useRecipe } from '@/features/recipes/hooks';
 import { useCookOrientation } from '@/hooks/useCookOrientation';
+import { useLanguage } from '@/lib/i18n/language-context';
 import { formatDuration } from '@/lib/format';
 
 /**
@@ -31,16 +32,22 @@ export default function RecipeSpreadScreen() {
   const navigate = useNavigate();
   const { data: profile } = useProfile();
   const orientation = useCookOrientation();
+  const { t } = useLanguage();
 
   const mode = profile?.chef_mode ?? 'normal';
   const recipe = useRecipe(slug, mode);
 
-  if (recipe.isPending) return <Spinner label="Abrindo a ficha…" />;
+  if (recipe.isPending) return <Spinner label={t('recipeSpread.opening')} />;
   if (recipe.isError) {
     return <ErrorState error={recipe.error} onRetry={() => void recipe.refetch()} />;
   }
   if (!recipe.data) {
-    return <EmptyState title="Receita não encontrada" description="Ela pode ter sido removida." />;
+    return (
+      <EmptyState
+        title={t('recipe.notFoundTitle')}
+        description={t('recipeSpread.notFoundDescription')}
+      />
+    );
   }
 
   const data = recipe.data;
@@ -62,7 +69,7 @@ export default function RecipeSpreadScreen() {
   const cover = (
     <div className="flex flex-col landscape:min-h-0">
       <p className="font-mono text-[11px] tracking-[0.18em] text-rouge uppercase">
-        {data.category ? `Coleção · ${data.category}` : 'Ficha'}
+        {data.category ? `${t('recipeSpread.collection')} · ${data.category}` : t('recipeSpread.sheet')}
       </p>
 
       <h1 className="mt-3 font-display text-[clamp(26px,4.2vh,40px)] leading-[1.05] font-bold tracking-[-0.03em] text-ink">
@@ -80,14 +87,15 @@ export default function RecipeSpreadScreen() {
         fallback={
           <span className="flex flex-col items-center gap-2 p-6 text-center text-ink-muted">
             <ImageOff aria-hidden className="size-6" strokeWidth={1.5} />
-            <span className="text-small">Sem foto</span>
+            <span className="text-small">{t('recipeSpread.noPhoto')}</span>
           </span>
         }
       />
 
       <p className="mt-4 font-mono text-[11px] tracking-[0.14em] text-ink-muted uppercase">
-        {path?.name ?? 'Preparo'} · {formatDuration(data.totalMinutes)} · {data.defaultServings}{' '}
-        {data.defaultServings === 1 ? 'porção' : 'porções'}
+        {path?.name ?? t('recipeSpread.preparation')} · {formatDuration(data.totalMinutes)} ·{' '}
+        {data.defaultServings}{' '}
+        {data.defaultServings === 1 ? t('recipe.servingSingular') : t('recipe.servingPlural')}
       </p>
     </div>
   );
@@ -105,7 +113,7 @@ export default function RecipeSpreadScreen() {
     <div className="flex flex-col gap-6 min-[1000px]:flex-row">
       <section className="min-w-0 min-[1000px]:w-[42%] min-[1000px]:flex-none">
         <p className="font-mono text-[11px] tracking-[0.18em] text-ink-muted uppercase">
-          Ingredientes
+          {t('recipe.tabIngredients')}
         </p>
         {data.groups.map((group) => (
           <div key={group.id ?? group.name}>
@@ -137,7 +145,9 @@ export default function RecipeSpreadScreen() {
       </section>
 
       <section className="min-w-0 flex-1">
-        <p className="font-mono text-[11px] tracking-[0.18em] text-ink-muted uppercase">Preparo</p>
+        <p className="font-mono text-[11px] tracking-[0.18em] text-ink-muted uppercase">
+          {t('recipeSpread.preparation')}
+        </p>
         <ol className="mt-3 flex flex-col gap-3">
           {(path?.steps ?? []).map((step, position) => (
             <li key={step.id} className="flex gap-3">
@@ -181,7 +191,7 @@ export default function RecipeSpreadScreen() {
         className="flex h-[46px] flex-none items-center gap-2 rounded-lg border border-strong px-4 text-[14px] font-semibold text-ink"
       >
         <X aria-hidden className="size-4" />
-        Fechar o livro
+        {t('recipeSpread.closeBook')}
       </button>
       <button
         type="button"
@@ -189,7 +199,7 @@ export default function RecipeSpreadScreen() {
         className="flex h-[46px] flex-1 items-center justify-center gap-2 rounded-lg bg-graphite-900 text-[15px] font-semibold text-porcelain-100"
       >
         <ChefHat aria-hidden className="size-[18px]" />
-        Cozinhar
+        {t('recipeSpread.cook')}
       </button>
     </div>
   );

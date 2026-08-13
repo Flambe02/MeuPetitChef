@@ -5,6 +5,8 @@ import { BottomSheet } from '@/components/ui/BottomSheet';
 import { Spinner } from '@/components/ui/states';
 import type { ChefMode, MealPlanGenerationMode, MealSlot } from '@/domain/types';
 import { useRecipeSearch } from '@/features/recipes/hooks';
+import { useLanguage } from '@/lib/i18n/language-context';
+import type { TranslationKey } from '@/lib/i18n/pt';
 import { toISODate } from '@/lib/format';
 import type { GenerationPreferences, PlannedEntry } from '@/lib/planning/types';
 
@@ -18,12 +20,12 @@ import {
 
 type View = 'menu' | 'search' | 'suggest' | 'leftover';
 
-const SLOT_LABEL: Record<MealSlot, string> = {
-  cafe: 'café',
-  almoco: 'almoço',
-  lanche: 'lanche',
-  jantar: 'jantar',
-  ceia: 'ceia',
+const SLOT_LABEL_KEY: Record<MealSlot, TranslationKey> = {
+  cafe: 'addMeal.slotCafe',
+  almoco: 'addMeal.slotAlmoco',
+  lanche: 'addMeal.slotLanche',
+  jantar: 'addMeal.slotJantar',
+  ceia: 'addMeal.slotCeia',
 };
 
 /**
@@ -50,6 +52,7 @@ export function AddMealSheet({
   generationMode: MealPlanGenerationMode;
   preferences: GenerationPreferences;
 }) {
+  const { t } = useLanguage();
   const [view, setView] = useState<View>('menu');
   const [term, setTerm] = useState('');
   const deferredTerm = useDeferredValue(term);
@@ -84,29 +87,29 @@ export function AddMealSheet({
   );
 
   return (
-    <BottomSheet open={open} onClose={close} title={`Adicionar ${SLOT_LABEL[slot]}`}>
+    <BottomSheet open={open} onClose={close} title={t('addMeal.title', { slot: t(SLOT_LABEL_KEY[slot]) })}>
       {view === 'menu' ? (
         <div className="flex flex-col gap-1">
-          <MenuAction icon={Search} label="Escolher receita" onClick={() => setView('search')} />
+          <MenuAction icon={Search} label={t('addMeal.chooseRecipe')} onClick={() => setView('search')} />
           <MenuAction
             icon={Sparkles}
-            label="Sugerir para mim"
+            label={t('addMeal.suggestForMe')}
             onClick={() => {
               setView('suggest');
               suggest.mutate({ weekStart: date, mode, generationMode, preferences, date, slot });
             }}
           />
           {leftoverSources.length > 0 ? (
-            <MenuAction icon={Recycle} label="Restos" onClick={() => setView('leftover')} />
+            <MenuAction icon={Recycle} label={t('addMeal.leftovers')} onClick={() => setView('leftover')} />
           ) : null}
           <MenuAction
             icon={UtensilsCrossed}
-            label="Comer fora"
+            label={t('addMeal.eatingOut')}
             onClick={() => setEatingOut.mutate({ date, slot }, { onSuccess: close })}
           />
           <MenuAction
             icon={Minus}
-            label="Sem refeição"
+            label={t('addMeal.noMeal')}
             onClick={() => setSkipped.mutate({ date, slot }, { onSuccess: close })}
           />
         </div>
@@ -119,8 +122,8 @@ export function AddMealSheet({
             autoFocus
             value={term}
             onChange={(event) => setTerm(event.target.value)}
-            placeholder="Receita, ingrediente, equipamento"
-            aria-label="Buscar receitas"
+            placeholder={t('addMeal.searchPlaceholder')}
+            aria-label={t('addMeal.searchAriaLabel')}
             className="h-11 w-full rounded-lg border border-hairline bg-inset px-3 text-body text-ink outline-none"
           />
           {search.isPending ? <Spinner /> : null}
@@ -146,7 +149,7 @@ export function AddMealSheet({
 
       {view === 'suggest' ? (
         <div className="flex flex-col gap-2">
-          {suggest.isPending ? <Spinner label="Buscando sugestões…" /> : null}
+          {suggest.isPending ? <Spinner label={t('addMeal.searchingSuggestions')} /> : null}
           {suggest.data?.map(({ recipe, label }) => (
             <button
               key={recipe.id}
@@ -166,7 +169,9 @@ export function AddMealSheet({
             </button>
           ))}
           {suggest.data?.length === 0 ? (
-            <p className="py-4 text-center text-small text-ink-muted">Nada disponível agora.</p>
+            <p className="py-4 text-center text-small text-ink-muted">
+              {t('addMeal.nothingAvailable')}
+            </p>
           ) : null}
         </div>
       ) : null}
