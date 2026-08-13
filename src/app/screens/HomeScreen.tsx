@@ -1,6 +1,5 @@
 import {
   AirVent,
-  Bell,
   Camera,
   Check,
   Clock,
@@ -36,6 +35,7 @@ import { useSpeechInput } from '@/hooks/useSpeechInput';
 import { cn } from '@/lib/cn';
 import { formatTimer } from '@/lib/format';
 import { asset } from '@/lib/asset';
+import { currentLanguage, setLanguage } from '@/lib/translate';
 
 const REASON_ICON = { leaf: Leaf, fan: Fan, zap: Zap, clock: Clock } as const;
 
@@ -193,8 +193,24 @@ export default function HomeScreen() {
 
           <div className="flex flex-col items-end gap-2.5">
             <div className="flex gap-1">
-              <IconButton aria-label="Notificações" className="size-[38px] text-porcelain-100">
-                <Bell aria-hidden className="size-[22px]" strokeWidth={1.75} />
+              {/* A discreet stand-in for the "Notificações" bell — this app has
+                  no notification feature, and the header's other slot is
+                  where a language toggle earns its keep: it's the one control
+                  every non-Portuguese reader needs before anything else on
+                  the screen. `notranslate` keeps "PT"/"FR" themselves from
+                  being run through the very widget they operate. */}
+              <IconButton
+                aria-label={
+                  currentLanguage() === 'fr' ? 'Mudar idioma para Português' : 'Mudar idioma para Français'
+                }
+                title="PT / FR"
+                onClick={() => setLanguage(currentLanguage() === 'fr' ? 'pt' : 'fr')}
+                className="notranslate size-[38px] text-porcelain-100"
+                translate="no"
+              >
+                <span aria-hidden className="font-mono text-[11px] font-semibold tracking-[0.02em]">
+                  {currentLanguage() === 'fr' ? 'FR' : 'PT'}
+                </span>
               </IconButton>
               <IconButton
                 aria-label="Perfil"
