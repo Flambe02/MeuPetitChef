@@ -23,6 +23,7 @@ import type {
   MagazineImportPage,
   MagazineItemStatus,
 } from '@/domain/types';
+import { randomId } from '@/lib/id';
 import type { AppSupabaseClient } from '@/lib/supabase/client';
 import { unwrap, unwrapMaybe } from '@/lib/supabase/errors';
 import type { Json, TablesInsert, TablesUpdate } from '@/lib/supabase/database.types';
@@ -54,7 +55,7 @@ export async function uploadMagazine(
   userId: string,
   file: File,
 ): Promise<MagazineImport> {
-  const id = crypto.randomUUID();
+  const id = randomId();
   const path = `${magazineFolder(userId, id)}/original.pdf`;
 
   const upload = await client.storage.from(BUCKET).upload(path, file, {
