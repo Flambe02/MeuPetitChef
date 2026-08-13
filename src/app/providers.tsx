@@ -2,6 +2,7 @@ import { PersistQueryClientProvider } from '@tanstack/react-query-persist-client
 import type { ReactNode } from 'react';
 
 import { SessionProvider } from '@/features/auth/SessionProvider';
+import { LanguageProvider } from '@/lib/i18n/LanguageProvider';
 import { persister, PERSIST_BUSTER, queryClient } from '@/lib/query/client';
 
 export function Providers({ children }: { children: ReactNode }) {
@@ -19,7 +20,9 @@ export function Providers({ children }: { children: ReactNode }) {
         },
       }}
     >
-      <SessionProvider>{children}</SessionProvider>
+      <SessionProvider>
+        <LanguageProvider>{children}</LanguageProvider>
+      </SessionProvider>
     </PersistQueryClientProvider>
   );
 }

@@ -4,6 +4,7 @@ import { NavLink, Outlet, useLocation } from 'react-router';
 import { TAB_ROUTES } from '@/app/routes';
 import { useOnlineStatus } from '@/hooks/useOnlineStatus';
 import { cn } from '@/lib/cn';
+import { useLanguage } from '@/lib/i18n/language-context';
 
 const TAB_ICON = {
   house: House,
@@ -22,6 +23,7 @@ const TAB_ICON = {
 export function AppShell() {
   const isOnline = useOnlineStatus();
   const location = useLocation();
+  const { t } = useLanguage();
 
   return (
     <div className="mx-auto flex min-h-dvh w-full max-w-app flex-col bg-base text-ink">
@@ -60,7 +62,7 @@ export function AppShell() {
               }
             >
               <Icon aria-hidden className="size-[22px]" strokeWidth={1.75} />
-              <span>{tab.label}</span>
+              <span>{t(tab.labelKey)}</span>
             </NavLink>
           );
         })}

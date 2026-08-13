@@ -1,3 +1,5 @@
+import type { TranslationKey } from '@/lib/i18n/pt';
+
 /**
  * Every route in the app, named once.
  *
@@ -56,10 +58,14 @@ export const routes = {
  * here: the prototype reaches favourites through "Meu livro" and the profile
  * through the avatar in the home header, which is why the fifth tab is "Mais".
  */
-export const TAB_ROUTES = [
-  { path: routes.home, label: 'Início', icon: 'house' },
-  { path: routes.search, label: 'Buscar', icon: 'search' },
-  { path: routes.plan, label: 'Semana', icon: 'calendar' },
-  { path: routes.book, label: 'Meu livro', icon: 'book' },
-  { path: routes.more, label: 'Mais', icon: 'more' },
-] as const;
+export const TAB_ROUTES: {
+  path: string;
+  labelKey: TranslationKey;
+  icon: 'house' | 'search' | 'calendar' | 'book' | 'more';
+}[] = [
+  { path: routes.home, labelKey: 'nav.home', icon: 'house' },
+  { path: routes.search, labelKey: 'nav.search', icon: 'search' },
+  { path: routes.plan, labelKey: 'nav.plan', icon: 'calendar' },
+  { path: routes.book, labelKey: 'nav.book', icon: 'book' },
+  { path: routes.more, labelKey: 'nav.more', icon: 'more' },
+];

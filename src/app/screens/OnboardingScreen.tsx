@@ -5,10 +5,12 @@ import { routes } from '@/app/routes';
 import { Button } from '@/components/ui/Button';
 import { DataLabel } from '@/components/ui/Card';
 import { CHEF_MODES } from '@/domain/chef-modes';
-import { EQUIPMENT_THEME, ONBOARDING_EQUIPMENT } from '@/domain/equipment';
+import { ONBOARDING_EQUIPMENT } from '@/domain/equipment';
 import type { ChefMode, EquipmentType } from '@/domain/types';
 import { useCompleteOnboarding } from '@/features/profile/hooks';
 import { cn } from '@/lib/cn';
+import { useLanguage } from '@/lib/i18n/language-context';
+import type { TranslationKey } from '@/lib/i18n/pt';
 
 /**
  * Onboarding — the two answers the rest of the app cannot run without.
@@ -25,6 +27,7 @@ import { cn } from '@/lib/cn';
 export default function OnboardingScreen() {
   const navigate = useNavigate();
   const complete = useCompleteOnboarding();
+  const { t } = useLanguage();
 
   const [step, setStep] = useState<0 | 1>(0);
   const [chefMode, setChefMode] = useState<ChefMode>('normal');
@@ -47,7 +50,7 @@ export default function OnboardingScreen() {
       {/* `safe-top` sets padding-top outright, so the visual spacing has to be
           folded into the same declaration rather than added with `pt-6`. */}
       <header className="px-6 pt-[calc(env(safe-area-inset-top)+1.5rem)] pb-4">
-        <DataLabel>Passo {step + 1} de 2</DataLabel>
+        <DataLabel>{t('onboarding.step', { step: step + 1 })}</DataLabel>
         <div aria-hidden className="mt-3 flex gap-1">
           <span className="h-0.5 flex-1 rounded-pill bg-rouge" />
           <span className={cn('h-0.5 flex-1 rounded-pill', step === 1 ? 'bg-rouge' : 'bg-inset')} />
@@ -57,14 +60,15 @@ export default function OnboardingScreen() {
       {step === 0 ? (
         <main className="flex flex-1 flex-col gap-6 px-6 pb-6">
           <div>
-            <h1 className="font-display text-display-s text-ink">Qual chef combina com você?</h1>
-            <p className="mt-2 text-small text-ink-muted">
-              Ele ajusta as porções, os ingredientes e a nutrição de cada receita. Dá para trocar
-              quando quiser.
-            </p>
+            <h1 className="font-display text-display-s text-ink">{t('onboarding.chefQuestion')}</h1>
+            <p className="mt-2 text-small text-ink-muted">{t('onboarding.chefQuestionDesc')}</p>
           </div>
 
-          <div role="radiogroup" aria-label="Escolha do chef" className="flex flex-col gap-3 pb-4">
+          <div
+            role="radiogroup"
+            aria-label={t('onboarding.chefRadioGroupLabel')}
+            className="flex flex-col gap-3 pb-4"
+          >
             {CHEF_MODES.map((chef) => {
               const active = chefMode === chef.id;
               return (
@@ -80,7 +84,9 @@ export default function OnboardingScreen() {
                   )}
                 >
                   <p className="text-body font-semibold text-ink">{chef.label}</p>
-                  <p className="mt-1 text-small text-ink-muted">{chef.description}</p>
+                  <p className="mt-1 text-small text-ink-muted">
+                    {t(`chefMode.${chef.id}.description` as TranslationKey)}
+                  </p>
                 </button>
               );
             })}
@@ -89,16 +95,13 @@ export default function OnboardingScreen() {
       ) : (
         <main className="flex flex-1 flex-col gap-6 px-6 pb-6">
           <div>
-            <h1 className="font-display text-display-s text-ink">O que você tem na cozinha?</h1>
-            <p className="mt-2 text-small text-ink-muted">
-              Cada receita tem vários caminhos. Marcar seus equipamentos coloca o caminho certo em
-              primeiro lugar.
-            </p>
+            <h1 className="font-display text-display-s text-ink">{t('onboarding.equipmentQuestion')}</h1>
+            <p className="mt-2 text-small text-ink-muted">{t('onboarding.equipmentQuestionDesc')}</p>
           </div>
 
           <div
             role="group"
-            aria-label="Equipamentos da sua cozinha"
+            aria-label={t('onboarding.equipmentGroupLabel')}
             className="grid grid-cols-2 gap-2 pb-4"
           >
             {ONBOARDING_EQUIPMENT.map((item) => {
@@ -116,7 +119,7 @@ export default function OnboardingScreen() {
                       : 'border-hairline text-ink-muted',
                   )}
                 >
-                  {EQUIPMENT_THEME[item].short}
+                  {t(`equipment.${item}` as TranslationKey)}
                 </button>
               );
             })}
@@ -126,26 +129,24 @@ export default function OnboardingScreen() {
 
       {complete.isError ? (
         <p className="px-6 pb-3 text-small text-rouge">
-          {complete.error instanceof Error
-            ? complete.error.message
-            : 'Não foi possível salvar. Tente de novo.'}
+          {complete.error instanceof Error ? complete.error.message : t('onboarding.saveError')}
         </p>
       ) : null}
 
       <footer className="flex gap-3 px-6 pb-[calc(env(safe-area-inset-bottom)+1.25rem)]">
         {step === 1 ? (
           <Button variant="ghost" onClick={() => setStep(0)} disabled={complete.isPending}>
-            Voltar
+            {t('onboarding.back')}
           </Button>
         ) : null}
 
         {step === 0 ? (
           <Button block onClick={() => setStep(1)}>
-            Continuar
+            {t('onboarding.continueButton')}
           </Button>
         ) : (
           <Button block onClick={finish} disabled={complete.isPending}>
-            {complete.isPending ? 'Salvando…' : 'Começar a cozinhar'}
+            {complete.isPending ? t('onboarding.finishing') : t('onboarding.startCooking')}
           </Button>
         )}
       </footer>

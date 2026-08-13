@@ -6,6 +6,7 @@ import { MemoryRouter } from 'react-router';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import * as profileApi from '@/features/profile/api';
+import { LanguageProvider } from '@/lib/i18n/LanguageProvider';
 
 import OnboardingScreen from './OnboardingScreen';
 
@@ -28,7 +29,9 @@ function wrapper({ children }: { children: ReactNode }) {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   return (
     <QueryClientProvider client={client}>
-      <MemoryRouter>{children}</MemoryRouter>
+      <MemoryRouter>
+        <LanguageProvider>{children}</LanguageProvider>
+      </MemoryRouter>
     </QueryClientProvider>
   );
 }

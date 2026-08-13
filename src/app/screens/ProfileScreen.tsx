@@ -7,7 +7,6 @@ import { Button } from '@/components/ui/Button';
 import { DataLabel } from '@/components/ui/Card';
 import { Spinner } from '@/components/ui/states';
 import { CHEF_MODES } from '@/domain/chef-modes';
-import { equipmentLabel } from '@/domain/equipment';
 import type { PreferenceKind } from '@/domain/types';
 import { signOut } from '@/features/auth/api';
 import { useSession } from '@/features/auth/session-context';
@@ -20,6 +19,8 @@ import {
 import { useInstallPrompt } from '@/hooks/useInstallPrompt';
 import { cn } from '@/lib/cn';
 import { formatShortDate } from '@/lib/format';
+import { useLanguage } from '@/lib/i18n/language-context';
+import type { TranslationKey } from '@/lib/i18n/pt';
 
 const SKILL_LABEL: Record<string, string> = {
   iniciante: 'Iniciante',
@@ -27,11 +28,11 @@ const SKILL_LABEL: Record<string, string> = {
   avancado: 'Avançado',
 };
 
-const PREFERENCE_LABEL: Record<PreferenceKind, string> = {
-  cuisine: 'Cozinhas preferidas',
-  style: 'Estilo de cozinhar',
-  time: 'Tempo disponível',
-  restriction: 'Restrições',
+const PREFERENCE_LABEL_KEY: Record<PreferenceKind, TranslationKey> = {
+  cuisine: 'profile.prefCuisine',
+  style: 'profile.prefStyle',
+  time: 'profile.prefTime',
+  restriction: 'profile.prefRestriction',
 };
 
 /**
@@ -49,6 +50,7 @@ export default function ProfileScreen() {
   const preferences = usePreferences();
   const updateProfile = useUpdateProfile();
   const install = useInstallPrompt();
+  const { t } = useLanguage();
 
   if (profile.isPending) return <Spinner />;
 
@@ -58,12 +60,12 @@ export default function ProfileScreen() {
 
   return (
     <>
-      <ScreenHeader title="Meu perfil" subtitle={user?.email ?? undefined} />
+      <ScreenHeader title={t('profile.title')} subtitle={user?.email ?? undefined} />
 
       <div className="flex flex-col gap-6 px-5 pb-8">
         {/* ── Chef ───────────────────────────────────────────────────── */}
         <section>
-          <DataLabel>Seu chef</DataLabel>
+          <DataLabel>{t('profile.yourChef')}</DataLabel>
           <div className="mt-3 flex flex-col gap-2">
             {CHEF_MODES.map((chef) => {
               const active = data?.chef_mode === chef.id;
@@ -81,7 +83,9 @@ export default function ProfileScreen() {
                   )}
                 >
                   <p className="text-body font-semibold text-ink">{chef.label}</p>
-                  <p className="mt-1 text-small text-ink-muted">{chef.description}</p>
+                  <p className="mt-1 text-small text-ink-muted">
+                    {t(`chefMode.${chef.id}.description` as TranslationKey)}
+                  </p>
                 </button>
               );
             })}
@@ -90,11 +94,11 @@ export default function ProfileScreen() {
 
         {/* ── Servings ───────────────────────────────────────────────── */}
         <section className="flex items-center justify-between rounded-lg border border-hairline px-4 py-3">
-          <DataLabel>Porções habituais</DataLabel>
+          <DataLabel>{t('profile.usualServings')}</DataLabel>
           <div className="flex items-center gap-4">
             <button
               type="button"
-              aria-label="Menos porções"
+              aria-label={t('profile.fewerServings')}
               disabled={updateProfile.isPending}
               onClick={() =>
                 updateProfile.mutate({
@@ -110,7 +114,7 @@ export default function ProfileScreen() {
             </span>
             <button
               type="button"
-              aria-label="Mais porções"
+              aria-label={t('profile.moreServings')}
               disabled={updateProfile.isPending}
               onClick={() =>
                 updateProfile.mutate({
@@ -126,7 +130,7 @@ export default function ProfileScreen() {
 
         {/* ── Kitchen ────────────────────────────────────────────────── */}
         <section>
-          <DataLabel>Sua cozinha</DataLabel>
+          <DataLabel>{t('profile.yourKitchen')}</DataLabel>
           <Link
             to={routes.equipment}
             className="mt-3 flex items-center gap-3 rounded-lg border border-hairline bg-raised p-4 no-underline"
@@ -134,11 +138,13 @@ export default function ProfileScreen() {
             <span className="min-w-0 flex-1">
               <span className="block text-body text-ink">
                 {equipment.data && equipment.data.length > 0
-                  ? equipment.data.map((item) => equipmentLabel(item.equipment)).join(' · ')
-                  : 'Nenhum equipamento configurado ainda.'}
+                  ? equipment.data
+                      .map((item) => t(`equipment.${item.equipment}` as TranslationKey))
+                      .join(' · ')
+                  : t('profile.noEquipment')}
               </span>
               <span className="mt-1 block font-mono text-[10px] tracking-[0.14em] text-ink-muted uppercase">
-                {equipment.data?.length ?? 0} aparelhos
+                {equipment.data?.length ?? 0} {t('profile.appliancesSuffix')}
               </span>
             </span>
             <ChevronRight aria-hidden className="size-5 shrink-0 text-ink-muted" />
@@ -147,20 +153,20 @@ export default function ProfileScreen() {
 
         {/* ── Onboarding answers ─────────────────────────────────────── */}
         <section>
-          <DataLabel>Suas respostas</DataLabel>
+          <DataLabel>{t('profile.yourAnswers')}</DataLabel>
           <dl className="mt-3 flex flex-col divide-y divide-hairline rounded-lg border border-hairline">
             <Row
-              label="Nível na cozinha"
+              label={t('profile.skillLevel')}
               value={(data?.skill_level ? SKILL_LABEL[data.skill_level] : null) ?? null}
             />
-            {(Object.keys(PREFERENCE_LABEL) as PreferenceKind[]).map((kind) => (
-              <Row key={kind} label={PREFERENCE_LABEL[kind]} value={byKind(kind).join(' · ')} />
+            {(Object.keys(PREFERENCE_LABEL_KEY) as PreferenceKind[]).map((kind) => (
+              <Row key={kind} label={t(PREFERENCE_LABEL_KEY[kind])} value={byKind(kind).join(' · ')} />
             ))}
             <Row
-              label="Onboarding"
+              label={t('profile.onboardingRow')}
               value={
                 data?.onboarding_completed_at
-                  ? `Concluído em ${formatShortDate(data.onboarding_completed_at)}`
+                  ? t('profile.completedOn', { date: formatShortDate(data.onboarding_completed_at) })
                   : null
               }
             />
@@ -169,23 +175,23 @@ export default function ProfileScreen() {
             to={routes.onboarding}
             className="mt-3 inline-block text-small font-semibold text-rouge no-underline"
           >
-            Refazer o onboarding
+            {t('profile.redoOnboarding')}
           </Link>
         </section>
 
         {/* ── Cook-mode settings ─────────────────────────────────────── */}
         <section>
-          <DataLabel>No modo cozinha</DataLabel>
+          <DataLabel>{t('profile.cookModeSettings')}</DataLabel>
           <div className="mt-3 flex flex-col divide-y divide-hairline rounded-lg border border-hairline">
             <Toggle
-              label="Manter a tela acesa"
-              hint="Nada de desbloquear o telefone com as mãos sujas."
+              label={t('profile.keepScreenOn')}
+              hint={t('profile.keepScreenOnHint')}
               checked={data?.keep_screen_awake ?? true}
               onChange={(next) => updateProfile.mutate({ keep_screen_awake: next })}
             />
             <Toggle
-              label="Som do timer"
-              hint="Um toque quando o tempo acaba."
+              label={t('profile.timerSound')}
+              hint={t('profile.timerSoundHint')}
               checked={data?.timer_sound ?? true}
               onChange={(next) => updateProfile.mutate({ timer_sound: next })}
             />
@@ -194,17 +200,15 @@ export default function ProfileScreen() {
 
         {install.canInstall ? (
           <Button variant="ghost" block onClick={() => void install.promptInstall()}>
-            Instalar na tela de início
+            {t('profile.install')}
           </Button>
         ) : null}
         {install.isIOS && !install.isInstalled ? (
-          <p className="text-small text-ink-muted">
-            No iPhone: toque em Compartilhar e depois em “Adicionar à Tela de Início”.
-          </p>
+          <p className="text-small text-ink-muted">{t('profile.installIOSHint')}</p>
         ) : null}
 
         <Button variant="quiet" block onClick={() => void signOut()}>
-          Sair da conta
+          {t('profile.signOut')}
         </Button>
       </div>
     </>
