@@ -11,7 +11,11 @@ import { useUpdateMagazineIdentity, useUploadMagazine } from '@/features/magazin
 import type { MagazineIdentity } from '@/lib/magazine-import/types';
 import { cn } from '@/lib/cn';
 
-const MAX_BYTES = 20 * 1024 * 1024;
+// Kept in step with the `imports` bucket's `file_size_limit`
+// (supabase/migrations/20260813120000_increase_magazine_upload_limit.sql) —
+// a client-side reject is instant, where a storage-side one only surfaces
+// after the upload has already run.
+const MAX_BYTES = 150 * 1024 * 1024;
 
 function formatBytes(bytes: number): string {
   if (bytes < 1024 * 1024) return `${Math.round(bytes / 1024)} KB`;
