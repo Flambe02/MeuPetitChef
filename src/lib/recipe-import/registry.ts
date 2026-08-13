@@ -18,12 +18,14 @@ import type {
 import { summarize, validateRecipe, type ImportSummary } from './validate.ts';
 import { cookidooImporter } from './providers/cookidoo.ts';
 import { cookomixImporter } from './providers/cookomix.ts';
+import { fileImporter } from './providers/file.ts';
 import { socialImporter } from './providers/social.ts';
 
 export const IMPORTERS: readonly RecipeImporter[] = [
   cookomixImporter,
   cookidooImporter,
   socialImporter,
+  fileImporter,
 ];
 
 export function getImporter(id: ProviderId): RecipeImporter {

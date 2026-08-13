@@ -118,12 +118,24 @@ export async function recordImport(
 ): Promise<string> {
   const { recipe, validation } = input;
 
+  // 'file' never came from a fetch — it is text or a file the person handed
+  // the screen directly. Every other provider is read off a URL, screenshots
+  // aside (which do not reach this far without one either).
+  const source = recipe.source.provider === 'file' ? 'text' : 'url';
+
+  // `import_has_a_source` requires source_url, raw_text or raw_file_path —
+  // a 'file' import usually has none of the first, having arrived with no
+  // URL at all, so the payload itself stands in as the record of what was
+  // read. Harmless to include even when a URL is also present.
+  const rawText = source === 'text' ? JSON.stringify(input.rawPayload ?? {}) : null;
+
   const { data, error } = await client
     .from('recipe_imports')
     .insert({
       user_id: input.userId,
-      source: 'url',
+      source,
       source_url: recipe.source.url,
+      raw_text: rawText,
       provider: recipe.source.provider,
       external_id: recipe.source.externalId,
       raw_data: input.rawPayload as Json,
@@ -191,6 +203,12 @@ export async function saveImportedRecipe(
       source_provider: recipe.source.provider,
       source_url: recipe.source.url,
       source_image_url: recipe.source.imageUrl,
+      // `source_image_url` is provenance (migration 16: "kept for review
+      // only"); `photo_url` is what every screen actually renders. An
+      // imported recipe's own photo is exactly the case migration 16 was
+      // written for — a picture that already exists somewhere on the web —
+      // so it is linked here too, not just recorded.
+      photo_url: recipe.source.imageUrl,
       imported_at: recipe.source.importedAt,
     })
     .select('id, slug')

@@ -107,7 +107,16 @@ export async function analyzeImport(input: AnalyzeInput): Promise<ImportOutcome>
     );
   }
 
-  const provider = input.provider ?? (url ? detectProvider(url)?.id : undefined);
+  // A URL wins when it matches a known site — Cookomix's own JSON-LD needs
+  // Cookomix's DOM enrichment pass too, so a URL match always outranks the
+  // generic reader. Failing that, JSON with nobody claiming it is exactly
+  // what `fileImporter` exists for: a `schema.org/Recipe` file the person
+  // generated themselves (ChatGPT, Claude, Gemini) rather than a page this
+  // app fetched.
+  const provider =
+    input.provider ??
+    (url ? detectProvider(url)?.id : undefined) ??
+    (isJson(source) ? 'file' : undefined);
 
   // Prose: no markup to walk, no JSON to read. The reading pass is the only
   // thing that can turn it into a recipe, and it is also what makes a private

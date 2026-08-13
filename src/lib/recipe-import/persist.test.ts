@@ -124,6 +124,9 @@ describe('saveImportedRecipe', () => {
     });
     // Photos are referenced, never downloaded.
     expect(row?.source_image_url).toMatch(/^https:\/\//);
+    // ...and also linked as the recipe's *displayed* photo (migration 16) —
+    // `source_image_url` alone is provenance nobody's screen reads.
+    expect(row?.photo_url).toBe(row?.source_image_url);
   });
 
   it('respects the time constraints the recipes table declares', async () => {
@@ -299,5 +302,34 @@ describe('recordImport', () => {
     expect(row?.status).toBe('failed');
     expect(String(row?.error_message)).toContain('passo');
     expect(row?.warnings).toBeInstanceOf(Array);
+  });
+
+  it('records a URL-less file import as "text", with the payload as raw_text', async () => {
+    const outcome = await runImport({
+      provider: 'file',
+      url: null,
+      structuredData: {
+        '@type': 'Recipe',
+        name: 'Receita de teste',
+        recipeIngredient: ['1 ovo'],
+        recipeInstructions: ['Bata o ovo.'],
+      },
+      importedAt: '2026-08-17T00:00:00.000Z',
+    });
+    const client = new FakeClient();
+
+    await recordImport(client as unknown as ImportSupabaseClient, {
+      userId: null,
+      recipe: outcome.recipe,
+      rawPayload: outcome.raw.payload,
+      validation: outcome.validation,
+    });
+
+    const [row] = client.rowsFor('recipe_imports');
+    // `import_has_a_source` requires source_url, raw_text or raw_file_path —
+    // a file import usually has none of the first.
+    expect(row).toMatchObject({ source: 'text', source_url: null });
+    expect(row?.raw_text).toBeTypeOf('string');
+    expect(String(row?.raw_text).length).toBeGreaterThan(0);
   });
 });

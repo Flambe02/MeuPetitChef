@@ -1,4 +1,4 @@
-import { AlertTriangle, Check, FileJson, Link2, X } from 'lucide-react';
+import { AlertTriangle, Check, Copy, FileJson, Link2, Upload, X } from 'lucide-react';
 import { useState } from 'react';
 import { useNavigate } from 'react-router';
 
@@ -32,6 +32,51 @@ const PROVIDERS: { id: ProviderId; label: string }[] = [
 ];
 
 /**
+ * Handed to an outside model (ChatGPT, Claude, Gemini) so the person can turn
+ * a magazine scan, a photo or a pasted article into a file this screen can
+ * read directly — `schema.org/Recipe` JSON, the exact shape `jsonld.ts`
+ * already parses for Cookomix and Cookidoo. Written in French because the
+ * source material is: an import keeps the recipe's own language until the
+ * explicit pt-BR adaptation pass, same as every other provider.
+ */
+const AI_PROMPT = `Tu es un assistant qui extrait une recette de cuisine à partir d'un texte ou d'une photo, et qui produit UNIQUEMENT du JSON valide au format schema.org/Recipe.
+
+Règles strictes :
+- N'extrais QUE le contenu de LA recette (titre, ingrédients, étapes, temps, portions, nutrition si présente). Ignore tout le reste du document : publicités, édito, sommaire, autres articles, autres recettes.
+- Si le document contient plusieurs recettes, choisis-en une seule et laisse les autres de côté — importe-les une par une, à la suite.
+- N'invente RIEN. Si une information est absente, mets le champ à null ou omets-le. Ne devine jamais une quantité, un temps de cuisson ou un nombre de portions.
+- Garde la langue d'origine de la recette (ne traduis pas).
+- N'invente jamais d'URL d'image. Si tu n'as pas d'URL réelle et publique pour une photo, omets le champ "image".
+- Réponds UNIQUEMENT avec le JSON — aucun texte avant ou après, aucune balise markdown \`\`\`.
+
+Format attendu :
+{
+  "@type": "Recipe",
+  "name": "",
+  "description": "",
+  "recipeYield": "",
+  "prepTime": "PT..M",
+  "cookTime": "PT..M",
+  "totalTime": "PT..M",
+  "recipeCategory": "",
+  "recipeCuisine": "",
+  "keywords": "",
+  "recipeIngredient": [""],
+  "recipeInstructions": [""],
+  "nutrition": {
+    "calories": "",
+    "proteinContent": "",
+    "carbohydrateContent": "",
+    "fatContent": "",
+    "fiberContent": ""
+  },
+  "inLanguage": "fr"
+}
+
+Voici le texte ou la photo de la recette à traiter :
+[COLE ICI LE TEXTE, OU DÉCRIS/JOINS LA PHOTO]`;
+
+/**
  * "Importar receita" — bring in a recipe you found, as a private reference.
  *
  * The framing is deliberate. An imported recipe is somebody else's writing: it
@@ -57,6 +102,8 @@ export default function ImportScreen() {
   const [source, setSource] = useState('');
   const [images, setImages] = useState<PreparedImage[]>([]);
   const [imageError, setImageError] = useState<string | null>(null);
+  const [fileError, setFileError] = useState<string | null>(null);
+  const [promptCopied, setPromptCopied] = useState(false);
 
   const analyze = useAnalyzeImport();
   const save = useSaveImport();
@@ -105,6 +152,36 @@ export default function ImportScreen() {
     } catch {
       setImageError('Não consegui ler uma dessas imagens.');
     }
+  };
+
+  /**
+   * A `.json`/`.md` file the person generated with an outside model, read
+   * straight into the same textarea a pasted caption or JSON uses — the file
+   * itself never leaves the browser, and everything downstream (JSON →
+   * `fileImporter`, Markdown/prose → the reading pass) is exactly the
+   * existing pipeline.
+   */
+  const loadFile = async (file: File | null) => {
+    if (!file) return;
+    reset();
+    setFileError(null);
+    try {
+      const text = await file.text();
+      if (!text.trim()) {
+        setFileError('Esse arquivo está vazio.');
+        return;
+      }
+      setSource(text);
+    } catch {
+      setFileError('Não consegui ler esse arquivo.');
+    }
+  };
+
+  const copyPrompt = () => {
+    void navigator.clipboard.writeText(AI_PROMPT).then(() => {
+      setPromptCopied(true);
+      setTimeout(() => setPromptCopied(false), 2500);
+    });
   };
 
   return (
@@ -157,8 +234,46 @@ export default function ImportScreen() {
 
             <p className="mt-3 text-small text-ink-muted">
               Posts privados e páginas que pedem login não abrem sozinhos. Mande capturas de tela do
-              post, ou cole o texto da receita.
+              post, cole o texto da receita, ou envie um arquivo.
             </p>
+
+            {/* ── Generate the file with an outside AI ──────────────────
+                For a magazine page or a printed recipe with no link at all —
+                a PDF too heavy for the magazine importer's own upload limit
+                is exactly this case. The model does the reading; this screen
+                still validates the result like any other import, nothing is
+                trusted blind. */}
+            <details className="mt-4 rounded-lg border border-hairline p-3 [&>summary]:list-none">
+              <summary className="cursor-pointer text-small font-semibold text-ink underline underline-offset-4">
+                Não tem link nem consegue enviar o PDF? Gere o arquivo com IA
+              </summary>
+              <p className="mt-2 text-small text-ink-muted">
+                Copie o texto abaixo, cole numa conversa com o ChatGPT, o Claude ou o Gemini junto
+                com a foto ou o texto da receita, e envie aqui o JSON que ele responder — como
+                texto colado ou como arquivo.
+              </p>
+              <div className="relative mt-3">
+                <textarea
+                  readOnly
+                  rows={6}
+                  value={AI_PROMPT}
+                  className="w-full rounded-lg border border-hairline bg-inset p-3 font-mono text-[11px] text-ink-muted outline-none"
+                />
+              </div>
+              <Button variant="ghost" size="sm" className="mt-2" onClick={copyPrompt}>
+                {promptCopied ? (
+                  <>
+                    <Check aria-hidden className="size-4" />
+                    Copiado
+                  </>
+                ) : (
+                  <>
+                    <Copy aria-hidden className="size-4" />
+                    Copiar prompt
+                  </>
+                )}
+              </Button>
+            </details>
 
             <label className="mt-4 block text-small text-ink-muted" htmlFor="import-source">
               Texto da receita
@@ -171,9 +286,31 @@ export default function ImportScreen() {
                 reset();
               }}
               rows={4}
-              placeholder="A legenda do post, ou o conteúdo da página (Ctrl+U)."
+              placeholder="A legenda do post, o conteúdo da página (Ctrl+U), ou o JSON gerado por uma IA."
               className="mt-1 w-full rounded-lg border border-hairline bg-transparent p-3 font-mono text-[12px] text-ink outline-none placeholder:text-ink-muted"
             />
+
+            {/* ── Or a file, straight from disk ─────────────────────────
+                JSON parses directly and reliably (`fileImporter`, no model
+                call needed on our side); Markdown or plain text goes through
+                the same reading pass a pasted caption already does. */}
+            <label className="mt-4 block text-small text-ink-muted" htmlFor="import-file">
+              Ou envie um arquivo (.json ou .md)
+            </label>
+            <div className="mt-1 flex items-center gap-2">
+              <Upload aria-hidden className="size-4 shrink-0 text-ink-muted" />
+              <input
+                id="import-file"
+                type="file"
+                accept=".json,.md,application/json,text/markdown,text/plain"
+                onChange={(event) => {
+                  void loadFile(event.target.files?.[0] ?? null);
+                  event.target.value = '';
+                }}
+                className="block w-full text-small text-ink-muted file:mr-3 file:rounded-lg file:border file:border-hairline file:bg-transparent file:px-3 file:py-2 file:text-small file:font-semibold file:text-ink"
+              />
+            </div>
+            {fileError ? <p className="mt-2 text-small text-rouge">{fileError}</p> : null}
 
             {/* ── Screenshots ────────────────────────────────────────── */}
             {/* The way in that always works. A private post has no link worth

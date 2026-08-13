@@ -35,8 +35,12 @@ import type { ChefMode, Difficulty, DialKind, EquipmentType, UnitKind } from '@/
  * through the *same* `RawRecipe → CanonicalRecipe` normalizer as every other
  * source — which is the whole point, and also what makes migration 14 apply to
  * it: `source_provider = 'magazine'` cannot be published.
+ *
+ * `file` is a recipe pasted or uploaded as `schema.org/Recipe` JSON — the
+ * person's own ChatGPT/Claude/Gemini output, not a page this app fetched. See
+ * `providers/file.ts`.
  */
-export type ProviderId = 'cookomix' | 'cookidoo' | 'social' | 'magazine';
+export type ProviderId = 'cookomix' | 'cookidoo' | 'social' | 'magazine' | 'file';
 
 /* ---------------------------------------------------------------------------
  * Raw side
