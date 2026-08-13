@@ -36,7 +36,8 @@ import { useSpeechInput } from '@/hooks/useSpeechInput';
 import { cn } from '@/lib/cn';
 import { formatTimer } from '@/lib/format';
 import { asset } from '@/lib/asset';
-import { currentLanguage, setLanguage } from '@/lib/translate';
+import { useLanguage } from '@/lib/i18n/language-context';
+import type { TranslationKey } from '@/lib/i18n/pt';
 
 const REASON_ICON = { leaf: Leaf, fan: Fan, zap: Zap, clock: Clock } as const;
 
@@ -66,8 +67,8 @@ const EQUIPMENT_ICON: Record<
  * `?max=` still works on the search screen — nothing was deleted behind them.
  */
 const ATALHOS = [
-  { label: 'Com o que tenho', icon: Refrigerator, to: routes.pantry },
-  { label: 'Importar receita', icon: Link2, to: routes.import },
+  { labelKey: 'home.shortcutPantry', icon: Refrigerator, to: routes.pantry },
+  { labelKey: 'home.shortcutImport', icon: Link2, to: routes.import },
 ] as const;
 
 /**
@@ -89,11 +90,12 @@ export default function HomeScreen() {
   const { data: profile } = useProfile();
   const { data: equipment } = useEquipment();
   const updateProfile = useUpdateProfile();
+  const { language, setLanguage, t } = useLanguage();
 
   const [phrase, setPhrase] = useState('');
   const [offset, setOffset] = useState(0);
 
-  const speech = useSpeechInput(setPhrase);
+  const speech = useSpeechInput(setPhrase, language);
   const slot = useMemo(() => mealSlotLabel(), []);
 
   const mode = profile?.chef_mode ?? 'normal';
@@ -119,18 +121,19 @@ export default function HomeScreen() {
       equipment: chosen,
       mode,
       servings: profile?.default_servings ?? 2,
+      language,
     });
   };
 
   const chefLine = chat.ask.isPending
-    ? 'Deixa comigo. Estou montando uma receita com o que você tem…'
+    ? t('home.chefLineThinking')
     : chat.ask.isError
       ? chat.ask.error instanceof Error
         ? chat.ask.error.message
-        : 'Não consegui responder agora.'
+        : t('home.chefLineErrorGeneric')
       : chat.recipe
-        ? 'Que tal esta? Se quiser, peça um ajuste — mais rápido, sem lactose, outro corte.'
-        : 'Me diga o que você tem, o que deseja cozinhar ou envie uma receita. Estou aqui para ajudar.';
+        ? t('home.chefLineGotRecipe')
+        : t('home.chefLineDefault');
 
   return (
     <div className="animate-in">
@@ -198,23 +201,20 @@ export default function HomeScreen() {
                   no notification feature, and the header's other slot is
                   where a language toggle earns its keep: it's the one control
                   every non-Portuguese reader needs before anything else on
-                  the screen. `notranslate` keeps "PT"/"FR" themselves from
-                  being run through the very widget they operate. */}
+                  the screen. The app's own translations, not Google's — no
+                  reload, no widget, no banner to fight. */}
               <IconButton
-                aria-label={
-                  currentLanguage() === 'fr' ? 'Mudar idioma para Português' : 'Mudar idioma para Français'
-                }
+                aria-label={t('home.switchLanguage')}
                 title="PT / FR"
-                onClick={() => setLanguage(currentLanguage() === 'fr' ? 'pt' : 'fr')}
-                className="notranslate size-[38px] text-porcelain-100"
-                translate="no"
+                onClick={() => setLanguage(language === 'fr' ? 'pt' : 'fr')}
+                className="size-[38px] text-porcelain-100"
               >
                 <span aria-hidden className="font-mono text-[11px] font-semibold tracking-[0.02em]">
-                  {currentLanguage() === 'fr' ? 'FR' : 'PT'}
+                  {language === 'fr' ? 'FR' : 'PT'}
                 </span>
               </IconButton>
               <IconButton
-                aria-label="Perfil"
+                aria-label={t('home.profile')}
                 onClick={() => void navigate(routes.profile)}
                 className="size-[38px] text-porcelain-100"
               >
@@ -229,7 +229,7 @@ export default function HomeScreen() {
 
         <div className="mt-[26px]">
           <h1 className="max-w-[13ch] font-display text-[31px] leading-[1.06] font-bold tracking-[-0.03em] text-wrap-pretty">
-            Olá, o que vamos cozinhar hoje?
+            {t('home.greeting')}
           </h1>
           <div aria-hidden className="mt-[18px] h-0.5 w-11 bg-rouge" />
         </div>
@@ -252,12 +252,12 @@ export default function HomeScreen() {
             type="text"
             value={phrase}
             onChange={(event) => setPhrase(event.target.value)}
-            placeholder="Diga o que você tem ou quer cozinhar…"
-            aria-label="O que você tem ou quer cozinhar"
+            placeholder={t('home.searchPlaceholder')}
+            aria-label={t('home.searchAriaLabel')}
             className="h-10 min-w-0 flex-1 bg-transparent text-[14px] text-ink outline-none"
           />
           <IconButton
-            aria-label="Foto"
+            aria-label={t('home.photo')}
             onClick={() => void navigate(routes.import)}
             className="size-10 rounded-pill text-ink"
           >
@@ -265,7 +265,7 @@ export default function HomeScreen() {
           </IconButton>
           {speech.isSupported ? (
             <IconButton
-              aria-label={speech.isRecording ? 'Parar de gravar' : 'Falar'}
+              aria-label={speech.isRecording ? t('home.stopRecording') : t('home.speak')}
               onClick={() => (speech.isRecording ? speech.stop() : speech.start())}
               className="size-10 rounded-pill text-rouge"
             >
@@ -274,7 +274,7 @@ export default function HomeScreen() {
           ) : null}
           <button
             type="submit"
-            aria-label="Enviar"
+            aria-label={t('home.send')}
             disabled={!phrase.trim()}
             className="flex size-10 shrink-0 items-center justify-center rounded-pill bg-rouge text-[18px] text-porcelain-100 disabled:opacity-45"
           >
@@ -291,15 +291,21 @@ export default function HomeScreen() {
             <span className="font-mono text-[13px] text-ink">
               {formatTimer(Math.floor(speech.elapsedMs / 1000))}
             </span>
-            <span className="flex-1 text-small text-ink-muted">Ouvindo…</span>
+            <span className="flex-1 text-small text-ink-muted">{t('home.listening')}</span>
             <button
               type="button"
               onClick={() => speech.stop()}
               className="h-[46px] rounded-lg border border-strong px-4 text-[14px] font-semibold text-ink"
             >
-              Parar
+              {t('home.stop')}
             </button>
           </div>
+        ) : null}
+
+        {speech.errorKey ? (
+          <p role="alert" className="mt-2.5 text-small text-rouge">
+            {t(speech.errorKey as TranslationKey)}
+          </p>
         ) : null}
 
         {/* Which appliances this request may use. Pre-ticked from the kitchen
@@ -307,13 +313,14 @@ export default function HomeScreen() {
         {owned.length > 0 ? (
           <div className="mt-3.5">
             <p className="text-small text-ink-muted">
-              Com quais aparelhos? <span className="text-ink-muted">Pode marcar vários.</span>
+              {t('home.whichAppliances')} <span className="text-ink-muted">{t('home.canPickSeveral')}</span>
             </p>
             <div className="mt-2 flex flex-wrap gap-2.5">
               {owned.map((item) => {
                 const active = chosen.includes(item);
                 const theme = EQUIPMENT_THEME[item];
                 const Icon = EQUIPMENT_ICON[item];
+                const label = t(`equipment.${item}` as TranslationKey);
                 return (
                   <button
                     key={item}
@@ -322,8 +329,8 @@ export default function HomeScreen() {
                       setPicked(active ? chosen.filter((e) => e !== item) : [...chosen, item])
                     }
                     aria-pressed={active}
-                    aria-label={theme.label}
-                    title={theme.label}
+                    aria-label={label}
+                    title={label}
                     className={cn(
                       'relative flex size-14 shrink-0 items-center justify-center rounded-xl border',
                       'transition-colors duration-[140ms] ease-signal',
@@ -358,9 +365,9 @@ export default function HomeScreen() {
               {chat.recipe.title}
             </h2>
             <p className="mt-2 font-mono text-[10px] tracking-[0.1em] text-ink-muted uppercase">
-              {chat.recipe.total_minutes} min · {chat.recipe.servings} porções ·{' '}
-              {chat.recipe.ingredients.length} ingredientes · {chat.recipe.paths.length}{' '}
-              {chat.recipe.paths.length === 1 ? 'caminho' : 'caminhos'}
+              {chat.recipe.total_minutes} min · {chat.recipe.servings} {t('home.servingsSuffix')} ·{' '}
+              {chat.recipe.ingredients.length} {t('home.ingredientsSuffix')} · {chat.recipe.paths.length}{' '}
+              {t(chat.recipe.paths.length === 1 ? 'home.pathSingular' : 'home.pathPlural')}
             </p>
             <p className="mt-2.5 text-small leading-[1.5] text-ink-secondary">
               {chat.recipe.description}
@@ -384,21 +391,21 @@ export default function HomeScreen() {
                 }
                 className="h-[42px] flex-1 rounded-lg bg-graphite-900 text-[14px] font-semibold text-porcelain-100 disabled:opacity-45"
               >
-                {chat.accept.isPending ? 'Salvando…' : 'Ver a receita'}
+                {chat.accept.isPending ? t('home.savingRecipe') : t('home.viewRecipe')}
               </button>
               <button
                 type="button"
                 onClick={() => setPhrase('')}
                 className="h-[42px] flex-1 rounded-lg border border-strong text-[14px] font-semibold text-ink"
               >
-                Ajustar
+                {t('home.adjust')}
               </button>
             </div>
             {chat.accept.isError ? (
               <p className="mt-2 text-small text-rouge">
                 {chat.accept.error instanceof Error
                   ? chat.accept.error.message
-                  : 'Não foi possível salvar.'}
+                  : t('home.couldNotSave')}
               </p>
             ) : null}
           </div>
@@ -409,7 +416,7 @@ export default function HomeScreen() {
             to={routes.import}
             className="inline-flex h-[38px] items-center gap-2 rounded-pill border border-hairline bg-raised px-4 text-small text-ink-muted no-underline"
           >
-            Ou tire uma foto da geladeira
+            {t('home.orTakePhoto')}
           </Link>
         </div>
       </div>
@@ -417,17 +424,17 @@ export default function HomeScreen() {
       {/* Shortcuts sit above the divider on purpose: they are other ways of
        *asking*, so they belong with the chat, not with the chef's own pick. */}
       <section className="px-5 pt-6">
-        <DataLabel>Atalhos</DataLabel>
+        <DataLabel>{t('home.shortcuts')}</DataLabel>
         <div className="mt-3 grid grid-cols-2 gap-2.5">
           {ATALHOS.map((atalho) => (
             <Link
-              key={atalho.label}
+              key={atalho.labelKey}
               to={atalho.to}
               className="flex items-center gap-2.5 rounded-lg border border-hairline bg-raised p-3.5 text-left no-underline"
             >
               <atalho.icon aria-hidden className="size-[18px] shrink-0 text-rouge" />
               <span className="text-[13.5px] leading-[1.25] font-semibold text-ink">
-                {atalho.label}
+                {t(atalho.labelKey)}
               </span>
             </Link>
           ))}
@@ -437,7 +444,7 @@ export default function HomeScreen() {
       {/* Or let the chef decide. */}
       <div className="flex items-center gap-3 px-5 pt-6">
         <span aria-hidden className="h-px flex-1 bg-hairline" />
-        <DataLabel>Ou deixe comigo</DataLabel>
+        <DataLabel>{t('home.orLetMeDecide')}</DataLabel>
         <span aria-hidden className="h-px flex-1 bg-hairline" />
       </div>
 
@@ -448,10 +455,7 @@ export default function HomeScreen() {
         ) : null}
 
         {!suggestions.isPending && !suggestions.isError && !suggestion ? (
-          <EmptyState
-            title="Nenhuma receita ainda"
-            description="Publique receitas no back-office ou rode o seed do Supabase para começar."
-          />
+          <EmptyState title={t('home.emptyTitle')} description={t('home.emptyDescription')} />
         ) : null}
 
         {suggestion ? (
@@ -460,7 +464,7 @@ export default function HomeScreen() {
               <div className="relative min-h-[150px] w-[124px] shrink-0 overflow-hidden rounded-lg">
                 <RecipeImage src={suggestion.heroImageUrl} className="absolute inset-0" fallback={null} />
                 <span className="pointer-events-none absolute top-2 left-2 rounded-xs bg-graphite-900 px-2 py-[5px] font-mono text-[9px] tracking-[0.14em] text-porcelain-100 uppercase">
-                  Sugestão de hoje
+                  {t('home.todaysSuggestion')}
                 </span>
               </div>
 
@@ -469,12 +473,12 @@ export default function HomeScreen() {
                   {suggestion.title}
                 </h2>
                 <p className="mt-2 font-mono text-[10px] tracking-[0.1em] text-ink-muted uppercase">
-                  {suggestion.totalMinutes} min · {suggestion.defaultServings} porções ·{' '}
+                  {suggestion.totalMinutes} min · {suggestion.defaultServings} {t('home.servingsSuffix')} ·{' '}
                   {suggestion.difficulty === 'facil'
-                    ? 'Fácil'
+                    ? t('home.difficultyEasy')
                     : suggestion.difficulty === 'medio'
-                      ? 'Médio'
-                      : 'Difícil'}
+                      ? t('home.difficultyMedium')
+                      : t('home.difficultyHard')}
                 </p>
 
                 {reasons.length > 0 ? (
@@ -504,7 +508,7 @@ export default function HomeScreen() {
                 to={routes.recipe(suggestion.slug)}
                 className="flex h-[42px] flex-1 items-center justify-center rounded-lg bg-graphite-900 text-[14px] font-semibold whitespace-nowrap text-porcelain-100 no-underline"
               >
-                Ver a receita
+                {t('home.viewRecipe')}
               </Link>
               <button
                 type="button"
@@ -512,7 +516,7 @@ export default function HomeScreen() {
                 disabled={list.length < 2}
                 className="h-[42px] flex-1 rounded-lg border border-strong text-[14px] font-semibold whitespace-nowrap text-ink disabled:opacity-45"
               >
-                Outra ideia
+                {t('home.anotherIdea')}
               </button>
             </div>
           </div>

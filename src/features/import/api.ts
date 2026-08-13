@@ -14,6 +14,7 @@
  * answer for a Cookidoo page only a subscriber can see.
  */
 import type { RecipeImport } from '@/domain/types';
+import { searchRecipeImage } from '@/features/generate/api';
 import { supabase } from '@/lib/supabase/client';
 import { unwrap } from '@/lib/supabase/errors';
 import { DataError } from '@/lib/supabase/errors';
@@ -211,7 +212,13 @@ export async function saveImport(
 
   if (!outcome.validation.ok) return null;
 
-  return saveImportedRecipe(supabase, { recipe: outcome.recipe, userId, importId });
+  // A JSON/Markdown import from an AI chat has no `source.imageUrl` at all —
+  // this is the only chance to give it a picture before the draft is written.
+  const photoUrl = outcome.recipe.source.imageUrl
+    ? null
+    : await searchRecipeImage(outcome.recipe.title);
+
+  return saveImportedRecipe(supabase, { recipe: outcome.recipe, userId, importId, photoUrl });
 }
 
 /** The caller's import queue, newest first. */

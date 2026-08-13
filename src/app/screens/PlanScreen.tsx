@@ -1,6 +1,8 @@
 import { ChevronLeft, ChevronRight, ShoppingBasket, Sparkles } from 'lucide-react';
 import { useMemo, useState } from 'react';
+import { useNavigate } from 'react-router';
 
+import { routes } from '@/app/routes';
 import { AddMealSheet } from '@/components/plan/AddMealSheet';
 import { DaySelector } from '@/components/plan/DaySelector';
 import { DaySummary } from '@/components/plan/DaySummary';
@@ -59,6 +61,7 @@ const DEFAULT_PREFERENCES: GenerationPreferences = {
 };
 
 export default function PlanScreen() {
+  const navigate = useNavigate();
   const [weekStart, setWeekStart] = useState(() => startOfWeek());
   const dates = useMemo(() => weekDates(weekStart), [weekStart]);
   const weekEnd = dates[6]!;
@@ -233,7 +236,16 @@ export default function PlanScreen() {
                           {label}
                         </p>
                         {planned ? (
-                          <MealCard planned={planned} mode={mode} onOpenMenu={() => setMenuTarget(planned)} />
+                          <MealCard
+                            planned={planned}
+                            mode={mode}
+                            onOpenMenu={() => setMenuTarget(planned)}
+                            onOpenRecipe={
+                              planned.recipe
+                                ? () => navigate(routes.recipe(planned.recipe!.slug))
+                                : undefined
+                            }
+                          />
                         ) : (
                           <EmptySlotCard onClick={() => setAddTarget({ date, slot })} />
                         )}

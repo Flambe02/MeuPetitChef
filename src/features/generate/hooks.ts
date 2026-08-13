@@ -10,6 +10,7 @@ import {
   finishGeneration,
   generateRecipe,
   saveGeneratedDraft,
+  searchRecipeImage,
   startGeneration,
   type GeneratedRecipe,
 } from './api';
@@ -40,6 +41,7 @@ export function useRecipeChat() {
       equipment: EquipmentType[];
       mode: ChefMode;
       servings: number;
+      language?: 'pt' | 'fr';
     }) => {
       const history = turns;
       const generated = await generateRecipe({ ...input, turns: history });
@@ -70,7 +72,8 @@ export function useRecipeChat() {
         turns,
       });
       try {
-        const draft = await saveGeneratedDraft(userId, recipe, input.mode);
+        const photoUrl = await searchRecipeImage(recipe.title);
+        const draft = await saveGeneratedDraft(userId, recipe, input.mode, photoUrl);
         await finishGeneration(generationId, {
           recipeId: draft.id,
           turns,

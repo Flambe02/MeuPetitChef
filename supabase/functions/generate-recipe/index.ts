@@ -189,6 +189,24 @@ UMA ETAPA = UMA AÇÃO. Se a frase tem "e depois", são duas etapas.
 Uma receita bem escrita tem tipicamente 8 a 18 etapas. Poucas etapas longas é o
 erro mais comum — prefira muitas etapas curtas.
 
+ESCOLHA DO APARELHO — o mais importante de tudo, e o erro mais caro quando
+sai errado: entre os aparelhos declarados, escolha o que combina com a
+TÉCNICA que o prato pede, nunca o aparelho "mais impressionante" ou o
+primeiro da lista. Thermomix não é o padrão nem a escolha premium — é só mais
+uma ferramenta, certa para algumas técnicas e errada para outras.
+  fritar sem óleo, empanados, gratinar crocante:        air_fryer
+  assar, gratinar em porção grande, dourar no forno:     forno
+  selar, grelhar, refogar rápido em fogo direto:         fogão (frigideira/panela)
+  bater, triturar, sopas cremosas, massas homogêneas,
+    cozinhar com pesagem e ordem estritas:               thermomix
+  cozinhar sob pressão, feijão, cortes duros rápido:     pressure_cooker
+  arroz, grãos, "ligar e esquecer":                      electric_cooker
+Um "steak haché" (hambúrguer/bife moído) e batata-doce em palitos, por
+exemplo, pedem fogão ou forno para o steak e air_fryer para a batata — nunca
+Thermomix, que não sela nem frita. Se o pedido descreve fritar, empanar,
+gratinar ou selar e a pessoa declarou air_fryer, forno ou fogão, esses
+vêm na frente de Thermomix mesmo que Thermomix também esteja disponível.
+
 TÉCNICA THERMOMIX — respeite a ordem, senão a receita queima ou empapa:
 1. Picar a seco primeiro: alho, cebola, ervas vão ao copo ANTES da gordura,
    picados em velocidade alta e curta (3-5 seg / vel 5-7), depois raspa-se as
@@ -255,11 +273,18 @@ UM CAMINHO POR CONJUNTO DE APARELHOS, nunca dois parecidos:
   "Thermomix + Forno", não "Preparar Ovos com Ervilhas".
 - Dois caminhos com os mesmos aparelhos e o mesmo tempo são um erro: escolha o melhor.
 
-OUTRAS REGRAS:
-- Responda SEMPRE em português do Brasil, INCLUSIVE quando o pedido vier em
-  outro idioma. Traduza tudo: título, ingredientes, passos. Nenhuma palavra
-  estrangeira sobra — "crevettes" é camarão, "poulet" é frango, "courgette" é
-  abobrinha. Um título como "Crevettes com Legumes" é erro.
+IDIOMA DA RESPOSTA:
+- Detecte o idioma em que a pessoa escreveu o pedido e responda INTEIRAMENTE
+  nesse idioma — título, subtítulo, descrição, ingredientes, passos, nomes de
+  caminho. Um pedido em francês ("filet de poulet aux légumes") gera uma
+  receita em francês; um pedido em português gera uma receita em português.
+  Se o idioma não estiver claro (pedido muito curto, ambíguo, ou uma lista de
+  ingredientes sem frase), responda em {default_language}.
+- Dentro de UMA receita, o idioma nunca muda a meio — nenhuma palavra do outro
+  idioma sobra. Se o pedido mistura os dois idiomas, escolha o idioma
+  predominante do pedido e traduza o resto para esse idioma.
+- Isto não afeta os nomes técnicos dos equipamentos nem os valores dos dials
+  (esses continuam nos enums fixos do esquema).
 - Use APENAS os equipamentos declarados. Se a pessoa não tem forno, nenhuma etapa vai ao forno.
 - Cada "path" é executável do início ao fim com esses equipamentos.
 - Quantidades realistas e coerentes com o número de porções pedido.
@@ -278,7 +303,14 @@ interface RequestBody {
   servings?: number;
   /** Prior turns, for refinement. */
   turns?: { role: 'user' | 'assistant'; content: string }[];
+  /** The app's current UI language — a hint for ambiguous prompts, not an override. */
+  language?: string;
 }
+
+const DEFAULT_LANGUAGE_NAME: Record<string, string> = {
+  fr: 'français',
+  pt: 'português do Brasil',
+};
 
 /**
  * `x-application-name` is there because the app's Supabase client sets it
@@ -344,6 +376,8 @@ Deno.serve(async (request: Request): Promise<Response> => {
   const mode = ['normal', 'gourmand', 'fit'].includes(body.mode ?? '') ? body.mode : 'normal';
   const servings = Math.min(20, Math.max(1, Math.round(body.servings ?? 2)));
   const turns = (body.turns ?? []).slice(-8);
+  const defaultLanguageName = DEFAULT_LANGUAGE_NAME[body.language ?? ''] ?? DEFAULT_LANGUAGE_NAME.pt;
+  const systemPrompt = SYSTEM_PROMPT.replace('{default_language}', defaultLanguageName!);
 
   const context = [
     `Equipamentos disponíveis: ${equipment.length > 0 ? equipment.join(', ') : 'nenhum declarado — use apenas fogão e bancada'}.`,
@@ -361,7 +395,7 @@ Deno.serve(async (request: Request): Promise<Response> => {
     body: JSON.stringify({
       model: MODEL,
       messages: [
-        { role: 'system', content: SYSTEM_PROMPT },
+        { role: 'system', content: systemPrompt },
         { role: 'system', content: context },
         ...turns,
         { role: 'user', content: prompt },

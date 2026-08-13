@@ -31,9 +31,17 @@ function getRecognitionCtor(): RecognitionCtor | null {
   return w.SpeechRecognition ?? w.webkitSpeechRecognition ?? null;
 }
 
-export function useSpeechInput(onResult: (transcript: string) => void) {
+/** The recognizer's own error codes — see the Web Speech API spec. */
+const ERROR_MESSAGE: Record<string, string> = {
+  'not-allowed': 'home.speechErrorNotAllowed',
+  'no-speech': 'home.speechErrorNoSpeech',
+  network: 'home.speechErrorNetwork',
+};
+
+export function useSpeechInput(onResult: (transcript: string) => void, lang: 'pt' | 'fr' = 'pt') {
   const [startedAt, setStartedAt] = useState<number | null>(null);
   const [tick, setTick] = useState(0);
+  const [errorKey, setErrorKey] = useState<string | null>(null);
   const recognitionRef = useRef<SpeechRecognitionLike | null>(null);
 
   // Kept in a ref, written from an effect, so `start` stays referentially stable
@@ -41,6 +49,13 @@ export function useSpeechInput(onResult: (transcript: string) => void) {
   const onResultRef = useRef(onResult);
   useEffect(() => {
     onResultRef.current = onResult;
+  });
+
+  // Same reason: `start` reads the current language without needing to be
+  // re-created (and therefore re-bound to the mic button) every time it changes.
+  const langRef = useRef(lang);
+  useEffect(() => {
+    langRef.current = lang;
   });
 
   const isSupported = getRecognitionCtor() !== null;
@@ -64,8 +79,9 @@ export function useSpeechInput(onResult: (transcript: string) => void) {
     const Ctor = getRecognitionCtor();
     if (!Ctor) return;
 
+    setErrorKey(null);
     const recognition = new Ctor();
-    recognition.lang = 'pt-BR';
+    recognition.lang = langRef.current === 'fr' ? 'fr-FR' : 'pt-BR';
     recognition.continuous = false;
     recognition.interimResults = true;
 
@@ -85,7 +101,11 @@ export function useSpeechInput(onResult: (transcript: string) => void) {
       setStartedAt(null);
     };
     recognition.addEventListener('end', finish);
-    recognition.addEventListener('error', finish);
+    recognition.addEventListener('error', (event) => {
+      const { error } = event as unknown as { error?: string };
+      setErrorKey(ERROR_MESSAGE[error ?? ''] ?? 'home.speechErrorGeneric');
+      finish();
+    });
 
     recognitionRef.current = recognition;
     recognition.start();
@@ -95,5 +115,5 @@ export function useSpeechInput(onResult: (transcript: string) => void) {
 
   useEffect(() => () => recognitionRef.current?.stop(), []);
 
-  return { isSupported, isRecording, elapsedMs, start, stop };
+  return { isSupported, isRecording, elapsedMs, start, stop, errorKey };
 }

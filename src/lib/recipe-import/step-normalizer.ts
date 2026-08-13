@@ -38,7 +38,7 @@ const LABEL_EQUIPMENT: [RegExp, EquipmentType][] = [
 
 /** Appliance words, in the four languages these sources publish in. */
 const TEXT_EQUIPMENT: [RegExp, EquipmentType][] = [
-  [/\bair ?fryer\b|\bfriteuse a air\b|\bheissluftfritteuse\b/, 'air_fryer'],
+  [/\bair ?fryer\b|\bfriteuse a air\b|\bheissluftfritteuse\b|\bfritadeira\b/, 'air_fryer'],
   [/\bfour\b|\bforno\b|\boven\b|\bbackofen\b|\bgratin(?:er)?\b/, 'oven'],
   [/\bmicro-?ondes?\b|\bmicro-?ondas\b|\bmicrowave\b/, 'microwave'],
   [/\bpanela de pressao\b|\bcocotte-minute\b|\bautocuiseur\b/, 'pressure_cooker'],

@@ -166,6 +166,13 @@ export interface SaveRecipeInput {
   userId: string | null;
   /** Set to `accepted` and pointed at the new recipe when given. */
   importId?: string | null;
+  /**
+   * Overrides `photo_url` when the source had no `imageUrl` of its own — an
+   * AI-generated JSON/Markdown import, for instance, never has one. Provenance
+   * (`source_image_url`) is untouched either way: it still reflects only what
+   * the source itself provided.
+   */
+  photoUrl?: string | null;
 }
 
 export interface SavedRecipe {
@@ -208,7 +215,7 @@ export async function saveImportedRecipe(
       // imported recipe's own photo is exactly the case migration 16 was
       // written for — a picture that already exists somewhere on the web —
       // so it is linked here too, not just recorded.
-      photo_url: recipe.source.imageUrl,
+      photo_url: recipe.source.imageUrl ?? input.photoUrl ?? null,
       imported_at: recipe.source.importedAt,
     })
     .select('id, slug')

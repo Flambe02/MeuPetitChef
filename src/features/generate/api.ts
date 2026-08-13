@@ -61,6 +61,8 @@ export interface GenerateInput {
   mode: ChefMode;
   servings: number;
   turns?: { role: 'user' | 'assistant'; content: string }[];
+  /** UI language, sent as a hint for prompts too short/ambiguous to detect from. */
+  language?: 'pt' | 'fr';
 }
 
 /**
@@ -85,6 +87,24 @@ export async function generateRecipe(input: GenerateInput): Promise<GeneratedRec
   if (data?.error) throw new DataError(data.error);
   if (!data?.recipe) throw new DataError('Resposta vazia do chef.');
   return data.recipe;
+}
+
+/**
+ * Finds an existing photo for a recipe that has none — a search, never a
+ * generation or an upload, per the same rule migration 16 states for
+ * `photo_url`. Best-effort: no key configured, no match, or a transport
+ * failure all resolve to `null` rather than throwing, because a recipe is
+ * worth saving with no picture far more than it is worth failing to save.
+ */
+export async function searchRecipeImage(query: string): Promise<string | null> {
+  try {
+    const { data } = (await supabase.functions.invoke('recipe-image', {
+      body: { query },
+    })) as { data: { url?: string | null } | null };
+    return data?.url ?? null;
+  } catch {
+    return null;
+  }
 }
 
 /* ---------------------------------------------------------------------------

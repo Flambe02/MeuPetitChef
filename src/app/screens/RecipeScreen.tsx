@@ -1,4 +1,4 @@
-import { BookOpen, Check, ImagePlus } from 'lucide-react';
+import { BookOpen, Check, ImagePlus, Volume2, VolumeX } from 'lucide-react';
 import { useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router';
 
@@ -14,8 +14,10 @@ import type { ChefMode } from '@/domain/types';
 import { useProfile } from '@/features/profile/hooks';
 import { useRecipe, useSetRecipePhoto } from '@/features/recipes/hooks';
 import { useAddRecipeToList } from '@/features/shopping/hooks';
+import { useSpeechOutput } from '@/hooks/useSpeechOutput';
 import { cn } from '@/lib/cn';
 import { formatDuration, formatGrams, formatKcal } from '@/lib/format';
+import { useLanguage } from '@/lib/i18n/language-context';
 
 type Tab = 'steps' | 'ingredients' | 'info';
 
@@ -37,6 +39,8 @@ export default function RecipeScreen() {
   const { slug } = useParams<{ slug: string }>();
   const navigate = useNavigate();
   const { data: profile } = useProfile();
+  const { language } = useLanguage();
+  const speechOutput = useSpeechOutput();
 
   const [mode, setMode] = useState<ChefMode | null>(null);
   const activeMode = mode ?? profile?.chef_mode ?? 'normal';
@@ -123,7 +127,36 @@ export default function RecipeScreen() {
             >
               ←
             </button>
-            <FavoriteButton recipe={data} />
+            <div className="flex gap-2">
+              {speechOutput.isSupported && activePath ? (
+                <button
+                  type="button"
+                  aria-label={speechOutput.isSpeaking ? 'Parar leitura' : 'Ouvir a receita'}
+                  onClick={() =>
+                    speechOutput.isSpeaking
+                      ? speechOutput.stop()
+                      : speechOutput.speak(
+                          [
+                            data.title,
+                            ...activePath.steps.map(
+                              (step, position) =>
+                                `${position + 1}. ${step.verb ? `${step.verb}. ` : ''}${step.instruction}`,
+                            ),
+                          ].join('. '),
+                          language,
+                        )
+                  }
+                  className="flex size-10 items-center justify-center rounded-pill border border-hairline bg-raised/90 text-ink backdrop-blur"
+                >
+                  {speechOutput.isSpeaking ? (
+                    <VolumeX aria-hidden className="size-[18px]" />
+                  ) : (
+                    <Volume2 aria-hidden className="size-[18px]" />
+                  )}
+                </button>
+              ) : null}
+              <FavoriteButton recipe={data} />
+            </div>
           </div>
         </div>
 

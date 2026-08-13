@@ -6,6 +6,7 @@ import { MemoryRouter } from 'react-router';
 import { describe, expect, it, vi } from 'vitest';
 
 import type { IngredientLine, RecipeDetail } from '@/domain/types';
+import { LanguageProvider } from '@/lib/i18n/LanguageProvider';
 
 import RecipeScreen from './RecipeScreen';
 
@@ -86,6 +87,11 @@ vi.mock('@/features/recipes/hooks', () => ({
 
 vi.mock('@/features/profile/hooks', () => ({
   useProfile: () => ({ data: { chef_mode: 'normal' } }),
+  useUpdateProfile: () => ({ mutate: vi.fn() }),
+}));
+
+vi.mock('@/features/auth/session-context', () => ({
+  useSession: () => ({ session: null, user: null, isLoading: false }),
 }));
 
 vi.mock('@/features/shopping/hooks', () => ({
@@ -104,7 +110,9 @@ function wrapper({ children }: { children: ReactNode }) {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   return (
     <QueryClientProvider client={client}>
-      <MemoryRouter initialEntries={['/receita/lasanha']}>{children}</MemoryRouter>
+      <MemoryRouter initialEntries={['/receita/lasanha']}>
+        <LanguageProvider>{children}</LanguageProvider>
+      </MemoryRouter>
     </QueryClientProvider>
   );
 }

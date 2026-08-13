@@ -54,6 +54,8 @@ export function MealCard({
   const macros = entry.entry_type === 'recipe' || entry.entry_type === 'leftover' ? macroLine(planned, mode) : null;
   const time = entry.entry_type === 'recipe' || entry.entry_type === 'leftover' ? timeLine(planned) : null;
 
+  const canOpenRecipe = Boolean(onOpenRecipe);
+
   return (
     <div className="flex items-start gap-3 rounded-lg border border-hairline bg-raised p-3">
       {entry.entry_type === 'eating_out' || entry.entry_type === 'skipped' ? (
@@ -63,17 +65,17 @@ export function MealCard({
           ) : null}
         </div>
       ) : (
-        <button
-          type="button"
-          onClick={onOpenRecipe}
-          disabled={!onOpenRecipe}
-          className="size-14 shrink-0 overflow-hidden rounded-md"
-        >
+        <div className="size-14 shrink-0 overflow-hidden rounded-md">
           <RecipeImage src={recipe?.heroImageUrl ?? null} className="size-full rounded-md" />
-        </button>
+        </div>
       )}
 
-      <div className="min-w-0 flex-1">
+      <button
+        type="button"
+        onClick={onOpenRecipe}
+        disabled={!canOpenRecipe}
+        className="min-w-0 flex-1 text-left disabled:cursor-default"
+      >
         <div className="flex items-center gap-1.5">
           {entry.entry_type === 'leftover' ? (
             <Recycle aria-hidden className="size-3.5 shrink-0 text-ink-muted" strokeWidth={1.75} />
@@ -92,7 +94,7 @@ export function MealCard({
         </div>
         {macros ? <p className="mt-1 text-small text-ink-muted">{macros}</p> : null}
         {time ? <p className="mt-0.5 text-small text-ink-muted">{time}</p> : null}
-      </div>
+      </button>
 
       <button
         type="button"
