@@ -259,6 +259,98 @@ await assertThat(
   "select count(*) from public.suggest_recipes('normal', 8)",
   8,
 );
+
+/* ---------------------------------------------------------------------------
+ * Semana (migration 18) — meal_plan_entries' new content rule, and the
+ * shopping-list merge. Still TEST_USER, still authenticated, from above.
+ * ------------------------------------------------------------------------- */
+await assertThat(
+  db,
+  'uma entrada eating_out não exige receita nem título',
+  `with inserted as (
+     insert into public.meal_plan_entries (user_id, plan_date, slot, entry_type)
+     values ('${TEST_USER}', '2026-08-17', 'almoco', 'eating_out')
+     returning 1
+   ) select count(*) from inserted`,
+  1,
+);
+let recipeEntryWithoutContentRejected = false;
+try {
+  await db.exec(`
+    insert into public.meal_plan_entries (user_id, plan_date, slot, entry_type)
+    values ('${TEST_USER}', '2026-08-17', 'jantar', 'recipe');
+  `);
+} catch {
+  recipeEntryWithoutContentRejected = true;
+}
+console.log(
+  `${recipeEntryWithoutContentRejected ? '  ok  ' : '  FAIL'} uma entrada recipe sem receita nem título é rejeitada`,
+);
+if (!recipeEntryWithoutContentRejected) failures += 1;
+
+let leftoverWithoutParentRejected = false;
+try {
+  await db.exec(`
+    insert into public.meal_plan_entries (user_id, plan_date, slot, entry_type)
+    values ('${TEST_USER}', '2026-08-18', 'jantar', 'leftover');
+  `);
+} catch {
+  leftoverWithoutParentRejected = true;
+}
+console.log(
+  `${leftoverWithoutParentRejected ? '  ok  ' : '  FAIL'} uma entrada leftover sem parent_entry_id é rejeitada`,
+);
+if (!leftoverWithoutParentRejected) failures += 1;
+
+await assertThat(
+  db,
+  'entrada nova nasce planned e destrancada',
+  `select status = 'planned' and locked = false from public.meal_plan_entries
+   where user_id = '${TEST_USER}' and plan_date = '2026-08-17' and slot = 'almoco'`,
+  true,
+);
+
+// Somar, não duplicar: a mesma receita adicionada duas vezes vira uma linha
+// maior, não duas linhas iguais (migration 18 reescreve a função para isso).
+const lasanhaId = (
+  await db.query("select id from public.recipes where slug = 'lasanha-de-frango-leve'")
+).rows[0].id;
+const countShoppingLines = async () =>
+  (
+    await db.query(
+      `select count(*)::int as n from public.shopping_items si
+       join public.shopping_lists sl on sl.id = si.list_id
+       where sl.user_id = '${TEST_USER}'`,
+    )
+  ).rows[0].n;
+
+await db.query(`select public.add_recipe_to_shopping_list('${lasanhaId}')`);
+const linesAfterFirstAdd = await countShoppingLines();
+await db.query(`select public.add_recipe_to_shopping_list('${lasanhaId}')`);
+const linesAfterSecondAdd = await countShoppingLines();
+const merged = linesAfterFirstAdd > 0 && linesAfterFirstAdd === linesAfterSecondAdd;
+console.log(
+  `${merged ? '  ok  ' : '  FAIL'} adicionar a mesma receita duas vezes funde as linhas → ${String(linesAfterFirstAdd)} → ${String(linesAfterSecondAdd)}`,
+);
+if (!merged) failures += 1;
+
+// A week for TEST_USER to hide from everyone else.
+await db.exec(`
+  insert into public.meal_plans (user_id, week_start, week_end, generation_mode)
+  values ('${TEST_USER}', '2026-08-17', '2026-08-23', 'equilibrada');
+`);
+await assertThat(db, "meal_plans: TEST_USER vê sua própria semana", 'select count(*) from public.meal_plans', 1);
+await db.exec('reset role;');
+
+await db.exec(
+  "set role authenticated; select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-000000000000', false);",
+);
+await assertThat(
+  db,
+  "RLS: stranger sees nobody's meal_plans",
+  'select count(*) from public.meal_plans',
+  0,
+);
 await db.exec('reset role;');
 
 /* ---------------------------------------------------------------------------

@@ -1035,6 +1035,11 @@ export type Database = {
           note: string | null;
           created_at: string;
           updated_at: string;
+          entry_type: Database["public"]["Enums"]["meal_plan_entry_type"];
+          status: Database["public"]["Enums"]["meal_plan_status"];
+          locked: boolean;
+          parent_entry_id: string | null;
+          cooked_at: string | null;
         };
         Insert: {
           id?: string;
@@ -1049,6 +1054,11 @@ export type Database = {
           note?: string | null;
           created_at?: string;
           updated_at?: string;
+          entry_type?: Database["public"]["Enums"]["meal_plan_entry_type"];
+          status?: Database["public"]["Enums"]["meal_plan_status"];
+          locked?: boolean;
+          parent_entry_id?: string | null;
+          cooked_at?: string | null;
         };
         Update: {
           id?: string;
@@ -1063,8 +1073,20 @@ export type Database = {
           note?: string | null;
           created_at?: string;
           updated_at?: string;
+          entry_type?: Database["public"]["Enums"]["meal_plan_entry_type"];
+          status?: Database["public"]["Enums"]["meal_plan_status"];
+          locked?: boolean;
+          parent_entry_id?: string | null;
+          cooked_at?: string | null;
         };
         Relationships: [
+          {
+            foreignKeyName: "meal_plan_entries_parent_entry_id_fkey";
+            columns: ["parent_entry_id"];
+            isOneToOne: false;
+            referencedRelation: "meal_plan_entries";
+            referencedColumns: ["id"];
+          },
           {
             foreignKeyName: "meal_plan_entries_recipe_id_fkey";
             columns: ["recipe_id"];
@@ -1074,6 +1096,47 @@ export type Database = {
           },
           {
             foreignKeyName: "meal_plan_entries_user_id_fkey";
+            columns: ["user_id"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      meal_plans: {
+        Row: {
+          id: string;
+          user_id: string;
+          week_start: string;
+          week_end: string;
+          generation_mode: Database["public"]["Enums"]["meal_plan_generation_mode"] | null;
+          generation_preferences: Json;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          week_start: string;
+          week_end: string;
+          generation_mode?: Database["public"]["Enums"]["meal_plan_generation_mode"] | null;
+          generation_preferences?: Json;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          user_id?: string;
+          week_start?: string;
+          week_end?: string;
+          generation_mode?: Database["public"]["Enums"]["meal_plan_generation_mode"] | null;
+          generation_preferences?: Json;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "meal_plans_user_id_fkey";
             columns: ["user_id"];
             isOneToOne: false;
             referencedRelation: "profiles";
@@ -2260,6 +2323,9 @@ export type Database = {
       magazine_import_status: "uploaded" | "processing" | "extracting" | "review_required" | "ready" | "completed" | "failed";
       magazine_item_status: "detected" | "extracted" | "review" | "approved" | "imported" | "ignored" | "failed";
       magazine_page_kind: "cover" | "advertisement" | "editorial" | "index" | "article" | "recipe" | "recipe_index" | "unknown";
+      meal_plan_entry_type: "recipe" | "leftover" | "eating_out" | "skipped";
+      meal_plan_generation_mode: "equilibrada" | "pratica" | "economica" | "fit";
+      meal_plan_status: "planned" | "cooked";
       meal_slot: "cafe" | "almoco" | "lanche" | "jantar" | "ceia";
       preference_kind: "cuisine" | "style" | "time" | "restriction";
       recipe_status: "draft" | "review" | "published" | "archived";

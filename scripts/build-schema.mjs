@@ -50,6 +50,16 @@ export const SUPABASE_STUBS = /* sql */ `
     select coalesce(nullif(current_setting('request.jwt.claim.role', true), ''), 'anon');
   $$;
 
+  -- The real platform grants these; nothing in this repo's migrations should
+  -- have to. Never noticed before because every existing caller of auth.uid()
+  -- is itself a plain SQL-language function, and the planner inlines that
+  -- trivial a body straight into the caller — no real function call, so no
+  -- ACL check ever ran. A PL/pgSQL caller (no inlining) hits the check for
+  -- real, and without this grant a permission-denied-for-schema-auth error
+  -- fires on a function that is correct and already works against Supabase.
+  grant usage on schema auth to anon, authenticated, service_role;
+  grant execute on all functions in schema auth to anon, authenticated, service_role;
+
   create table if not exists storage.buckets (
     id text primary key,
     name text not null,

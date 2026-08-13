@@ -58,6 +58,8 @@ export const keys = {
     all: ['plan'] as const,
     week: (userId: string, weekStart: string) =>
       [...keys.plan.all, 'week', userId, weekStart] as const,
+    meta: (userId: string, weekStart: string) =>
+      [...keys.plan.all, 'meta', userId, weekStart] as const,
   },
 
   shopping: {

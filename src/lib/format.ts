@@ -46,3 +46,16 @@ export function toISODate(date: Date): string {
   const offset = date.getTimezoneOffset() * 60_000;
   return new Date(date.getTime() - offset).toISOString().slice(0, 10);
 }
+
+/**
+ * The inverse of `toISODate` — a Postgres `date` string read back as local
+ * midnight. `new Date('YYYY-MM-DD')` parses as *UTC* midnight per spec, which
+ * silently lands on the wrong day in any timezone behind UTC (Brazil
+ * included) the moment something calls `.getDate()` or `toISODate()` on the
+ * result. This constructs the `Date` from local year/month/day instead, so
+ * there is no UTC conversion to get wrong.
+ */
+export function parseISODate(iso: string): Date {
+  const [year, month, day] = iso.split('-').map(Number);
+  return new Date(year!, month! - 1, day);
+}
