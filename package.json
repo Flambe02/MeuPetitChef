@@ -1,7 +1,7 @@
 {
   "name": "meu-petit-chef",
   "private": true,
-  "version": "0.11.0",
+  "version": "0.11.1",
   "type": "module",
   "description": "Meu Petit Chef — PWA de receitas adaptáveis (equipamentos, objetivos nutricionais, porções).",
   "engines": {
@@ -33,6 +33,7 @@
     "recipe:import": "node scripts/recipe-importers/import-recipe.ts",
     "recipe:import-batch": "node scripts/recipe-importers/import-batch.ts",
     "recipe:adapt": "node scripts/recipe-importers/adapt-recipes.ts",
+    "recipe:backfill-photos": "node scripts/recipe-importers/backfill-photos.ts",
     "import:recipe": "npm run recipe:import --"
   },
   "dependencies": {
