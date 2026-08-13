@@ -13,7 +13,11 @@
       content="Receitas que se adaptam aos seus equipamentos, aos seus objetivos e às suas porções."
     />
 
-    <!-- iOS standalone behaviour -->
+    <!-- Standalone (home-screen) behaviour. Safari only ever reads the
+         apple- prefixed tag; the unprefixed one is the newer, cross-browser
+         spec Chrome/Edge now ask for too — both stay, neither replaces the
+         other. -->
+    <meta name="mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="default" />
     <meta name="apple-mobile-web-app-title" content="Petit Chef" />

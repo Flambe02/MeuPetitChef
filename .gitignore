@@ -27,12 +27,12 @@ desktop.ini
 .vite/
 *.tsbuildinfo
 
-# Generated PWA artefacts
+# Generated PWA artefacts — only the dev-mode service worker/manifest.
+# The icon PNGs/ico under public/ are source assets `vite-plugin-pwa` reads,
+# not something a build produces: excluding them here meant every "Add to
+# Home Screen" icon (and the manifest icons themselves) 404'd on every
+# deploy, because git never had them to check out.
 dev-dist/
-public/pwa-*.png
-public/apple-touch-icon.png
-public/favicon.ico
-public/maskable-icon-512.png
 
 # Maquettes de reference (prototype Claude Design, 32 Mo) — locales seulement
 example/

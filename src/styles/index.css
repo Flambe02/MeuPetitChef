@@ -258,17 +258,31 @@
    false` and hidden, but that only skips the "translate this page?" prompt.
    Once a translation is actually active — which it is, the instant the
    `googtrans` cookie is set — Google injects its own top banner
-   ("Traduit en : Français ▾ | Afficher l'original | Options ▾") as an
-   iframe, and pushes the whole page down to make room for it by writing an
-   inline `top` style onto <body>. The app has its own discreet PT/FR control
-   (see LanguageSwitcher and HomeScreen's header toggle); this banner is
-   Google's, not ours, and duplicates it. `!important` is required to win
-   over Google's inline styles, which a plain rule cannot do.
+   ("Traduit en : Français ▾ | Afficher l'original | Options ▾") and pushes
+   the whole page down to make room for it by writing an inline `top` style
+   onto <body>. The app has its own discreet PT/FR control (see
+   LanguageSwitcher and HomeScreen's header toggle); this banner is Google's,
+   not ours, and duplicates it.
+
+   `.goog-te-banner-frame` was the selector for years and is kept for anyone
+   still served an older widget build, but the version live as of 2026-08 no
+   longer uses it: the banner is an unnamed `<iframe>` (an `id=":N.container"`
+   React-style counter, useless as a selector) sitting inside the *first*
+   `<div class="skiptranslate">` Google appends directly to <body> — that
+   wrapper div, not the iframe, is what gets targeted below, since it has no
+   other identifying class at all. Confirmed against the live deploy with
+   Playwright, not just read off Google's docs. `#goog-gt-tt` is the
+   separate hover-a-word tooltip, unwanted for the same reason. `!important`
+   throughout is required to win over Google's own inline styles, which a
+   plain rule cannot do.
 --------------------------------------------------------------------------- */
-.goog-te-banner-frame {
+.goog-te-banner-frame,
+body > div.skiptranslate,
+#goog-gt-tt {
   display: none !important;
 }
 
+html,
 body {
   top: 0 !important;
 }
